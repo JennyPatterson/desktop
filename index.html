@@ -164,6 +164,25 @@
         display: grid;
         gap: 0.55rem;
       }
+      .info-bubble {
+        padding: 0.6rem 0.7rem;
+        border: 1px solid #6c5aa3;
+        border-radius: 10px;
+        background: #1c1632;
+        font-size: 0.84rem;
+        color: #d9d4f7;
+      }
+      .info-bubble ul {
+        margin: 0.35rem 0 0 1rem;
+        padding: 0;
+      }
+      .info-bubble li {
+        display: list-item;
+        margin: 0.2rem 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
+      }
       .sync-link-row {
         display: flex;
         align-items: center;
@@ -389,6 +408,15 @@
       <h2>Sync Across Devices</h2>
       <div class="sync-helper">
         <div class="muted">Keep state on GitHub Gists so refresh on desktop picks up mobile changes.</div>
+        <div class="info-bubble" role="note" aria-label="Gist sync setup help">
+          Setup:
+          <ul>
+            <li>Create a GitHub personal access token with <strong>gist</strong> scope.</li>
+            <li>Paste it here and click <strong>Save Token</strong>.</li>
+            <li>Click <strong>Create Shared Sync Link</strong> once, then open/copy that same link on each device.</li>
+            <li>Use <strong>Sync Now</strong> anytime to pull latest changes; edits auto-push when token + sync link are present.</li>
+          </ul>
+        </div>
         <label>
           GitHub token (gist scope)
           <input id="github-token" type="password" autocomplete="off" placeholder="github_pat_..." />
