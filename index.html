@@ -725,6 +725,37 @@
         return response;
       }
 
+      async function buildGithubApiError(response, prefix) {
+        let detail = "";
+        try {
+          const contentType = response.headers.get("content-type") || "";
+          if (contentType.includes("application/json")) {
+            const payload = await response.json();
+            const message = typeof payload?.message === "string" ? payload.message.trim() : "";
+            const errorDetails = Array.isArray(payload?.errors)
+              ? payload.errors
+                  .map((entry) => {
+                    if (typeof entry === "string") return entry.trim();
+                    if (entry && typeof entry === "object") {
+                      const reason = typeof entry.message === "string" ? entry.message.trim() : "";
+                      const field = typeof entry.field === "string" ? entry.field.trim() : "";
+                      if (reason && field) return `${reason} (${field})`;
+                      return reason || field;
+                    }
+                    return "";
+                  })
+                  .filter(Boolean)
+              : [];
+            detail = [message, ...errorDetails].filter(Boolean).join("; ");
+          } else {
+            detail = (await response.text()).trim();
+          }
+        } catch {
+          detail = "";
+        }
+        return detail ? `${prefix} (${response.status}): ${detail}` : `${prefix} (${response.status})`;
+      }
+
       async function readRemoteState(id, token = "") {
         const response = await githubApiRequest(`/gists/${encodeURIComponent(id)}`, { method: "GET" }, token);
         if (!response.ok) throw new Error(`Remote fetch failed (${response.status})`);
@@ -793,7 +824,7 @@
           err.code = "conflict";
           throw err;
         }
-        if (!response.ok) throw new Error(`Remote save failed (${response.status})`);
+        if (!response.ok) throw new Error(await buildGithubApiError(response, "Remote save failed"));
         remoteRevision = nextRevision;
         remoteEtag = response.headers.get("etag");
       }
