@@ -367,15 +367,33 @@
         return `recurs every ${value} ${UNIT_LABELS[unit]}${value === 1 ? "" : "s"}`;
       }
 
+      function formatDuration(ms) {
+        const totalMinutes = Math.floor(Math.max(0, ms) / 60000);
+        if (totalMinutes < 1) return "under a minute";
+        const days = Math.floor(totalMinutes / 1440);
+        const hours = Math.floor((totalMinutes % 1440) / 60);
+        const minutes = totalMinutes % 60;
+        const parts = [];
+        if (days) parts.push(`${days}d`);
+        if (hours) parts.push(`${hours}h`);
+        if (minutes || !parts.length) parts.push(`${minutes}m`);
+        return parts.slice(0, 2).join(" ");
+      }
+
+      function dueDurationText(item, now) {
+        const dueAt = Math.max(0, Number(item.nextDueAt) || Number(item.createdAt) || now);
+        return `due for ${formatDuration(now - dueAt)}`;
+      }
+
       function render() {
         const now = Date.now();
         const items = loadItems();
         const visibleTasks = items.filter((i) => isVisibleNow(i, now));
-        renderList(tasksList, visibleTasks);
+        renderList(tasksList, visibleTasks, now);
         renderHistory();
       }
 
-      function renderList(listEl, items) {
+      function renderList(listEl, items, now = Date.now()) {
         listEl.innerHTML = "";
         if (!items.length) {
           const empty = document.createElement("li");
@@ -405,7 +423,7 @@
           name.textContent = item.name;
           const meta = document.createElement("div");
           meta.className = "muted";
-          meta.textContent = recurrenceText(item);
+          meta.textContent = `${recurrenceText(item)} • ${dueDurationText(item, now)}`;
           const actions = document.createElement("div");
           actions.className = "actions";
           const editButton = document.createElement("button");
