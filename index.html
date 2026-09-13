@@ -6,14 +6,19 @@
     <title>Priorities + Tasks</title>
     <style>
       :root {
-        color-scheme: light;
+        color-scheme: dark;
         font-family: "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        --bg-top: #edf5ff;
-        --bg-bottom: #f7fbf4;
-        --card-bg: #ffffffd6;
-        --card-border: #bdd1e7;
-        --text-main: #27384a;
-        --text-muted: #5d7186;
+        --bg-top: #09081a;
+        --bg-bottom: #110d22;
+        --card-bg: #151028e6;
+        --card-border: #44356f;
+        --text-main: #f4f5ff;
+        --text-muted: #b8b3d9;
+        --field-bg: #100d20;
+        --field-border: #5a4b8d;
+        --primary: #7d4dff;
+        --primary-hover: #9468ff;
+        --danger: #e0528f;
       }
       * {
         box-sizing: border-box;
@@ -23,8 +28,23 @@
         padding: 1.4rem;
         max-width: 920px;
         min-height: 100vh;
-        background: linear-gradient(165deg, var(--bg-top), var(--bg-bottom));
+        position: relative;
+        overflow-x: hidden;
+        background:
+          radial-gradient(circle at 15% -10%, #4d2bf24d 0%, transparent 30%),
+          radial-gradient(circle at 85% 5%, #17d9f84a 0%, transparent 28%),
+          linear-gradient(165deg, var(--bg-top), var(--bg-bottom));
         color: var(--text-main);
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background:
+          repeating-linear-gradient(115deg, #00f2ff1a 0 2px, transparent 2px 26px),
+          repeating-linear-gradient(295deg, #ff2ea61c 0 1px, transparent 1px 23px);
+        mix-blend-mode: screen;
       }
       h1 {
         margin-top: 0;
@@ -40,8 +60,9 @@
         border: 1px solid var(--card-border);
         border-radius: 12px;
         background: var(--card-bg);
-        box-shadow: 0 8px 25px #5c7d9b14;
+        box-shadow: 0 10px 30px #04020f78;
         margin-bottom: 1rem;
+        backdrop-filter: blur(4px);
       }
       label {
         display: grid;
@@ -54,14 +75,30 @@
         font: inherit;
         padding: 0.4rem;
         border-radius: 8px;
-        border: 1px solid #b4c7db;
-        background: #fff;
+        border: 1px solid var(--field-border);
+        background: var(--field-bg);
         color: inherit;
       }
+      input[type="color"] {
+        min-height: 2.2rem;
+        padding: 0.2rem;
+      }
       button {
-        background: #3d7dbf;
+        cursor: pointer;
+        background: var(--primary);
         color: #fff;
-        border-color: #3d7dbf;
+        border-color: var(--primary);
+      }
+      button:hover {
+        background: var(--primary-hover);
+      }
+      button.secondary {
+        background: #2a2544;
+        border-color: #5a4b8d;
+      }
+      button.danger {
+        background: #402338;
+        border-color: var(--danger);
       }
       ul {
         list-style: none;
@@ -73,18 +110,16 @@
         justify-content: space-between;
         gap: 0.8rem;
         padding: 0.55rem 0.6rem;
-        border: 1px solid #c6d6e685;
+        border: 1px solid #4f3f80;
         border-radius: 10px;
-        background: #f8fbff;
+        background: #17112c;
         margin-bottom: 0.45rem;
       }
       li.schedule-one-time {
-        background: #e8f3ff;
-        border-color: #8ebef2;
+        background: #19142c;
       }
       li.schedule-recurring {
-        background: #fff7d9;
-        border-color: #dfc46a;
+        background: #1a1330;
       }
       .muted {
         color: var(--text-muted);
@@ -101,12 +136,40 @@
         background: var(--card-bg);
         border: 1px solid var(--card-border);
         border-radius: 12px;
-        box-shadow: 0 8px 20px #688aa80f;
+        box-shadow: 0 10px 30px #04020f66;
+        backdrop-filter: blur(4px);
       }
       h2 {
         margin-top: 0.2rem;
         margin-bottom: 0.6rem;
         font-size: 1.05rem;
+      }
+      .item-content {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .item-color {
+        width: 0.8rem;
+        height: 0.8rem;
+        border-radius: 999px;
+        border: 1px solid #ffffff70;
+        flex: 0 0 auto;
+      }
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .actions button {
+        padding: 0.3rem 0.55rem;
+        font-size: 0.82rem;
+      }
+      #edit-panel[hidden] {
+        display: none;
+      }
+      #edit-panel h2 {
+        margin-bottom: 0.9rem;
       }
     </style>
   </head>
@@ -143,8 +206,49 @@
           </select>
         </div>
       </label>
+      <label>
+        Colour
+        <input id="color" name="color" type="color" value="#4cc9f0" />
+      </label>
       <button type="submit">Save</button>
     </form>
+
+    <section id="edit-panel" hidden>
+      <h2>Edit Item</h2>
+      <form id="edit-form">
+        <label>
+          Name
+          <input id="edit-name" name="edit-name" required maxlength="200" />
+        </label>
+        <label>
+          Recurrence
+          <select id="edit-schedule" name="edit-schedule">
+            <option value="one-time">One-time</option>
+            <option value="recurring">Recurring</option>
+          </select>
+        </label>
+        <label id="edit-interval-label" style="display: none">
+          Recur every
+          <div class="row">
+            <input id="edit-interval-value" name="edit-interval-value" type="number" min="1" step="1" value="1" />
+            <select id="edit-interval-unit" name="edit-interval-unit">
+              <option value="minutes">minutes</option>
+              <option value="days">days</option>
+              <option value="weeks">weeks</option>
+              <option value="years">years</option>
+            </select>
+          </div>
+        </label>
+        <label>
+          Colour
+          <input id="edit-color" name="edit-color" type="color" value="#4cc9f0" />
+        </label>
+        <div class="actions">
+          <button type="submit">Save changes</button>
+          <button id="cancel-edit" type="button" class="secondary">Cancel</button>
+        </div>
+      </form>
+    </section>
 
     <section>
       <h2>Current Priorities</h2>
@@ -165,22 +269,61 @@
       const STORAGE_KEY = "priorityTaskApp.items.v1";
       const HISTORY_STORAGE_KEY = "priorityTaskApp.history.v1";
       const form = document.getElementById("item-form");
+      const typeInput = document.getElementById("type");
+      const colorInput = document.getElementById("color");
       const scheduleSelect = document.getElementById("schedule");
       const intervalLabel = document.getElementById("interval-label");
       const intervalValueInput = document.getElementById("interval-value");
       const intervalUnitInput = document.getElementById("interval-unit");
+      const editPanel = document.getElementById("edit-panel");
+      const editForm = document.getElementById("edit-form");
+      const editNameInput = document.getElementById("edit-name");
+      const editScheduleInput = document.getElementById("edit-schedule");
+      const editIntervalLabel = document.getElementById("edit-interval-label");
+      const editIntervalValueInput = document.getElementById("edit-interval-value");
+      const editIntervalUnitInput = document.getElementById("edit-interval-unit");
+      const editColorInput = document.getElementById("edit-color");
+      const cancelEditButton = document.getElementById("cancel-edit");
       const prioritiesList = document.getElementById("priorities-list");
       const tasksList = document.getElementById("tasks-list");
       const historyList = document.getElementById("history-list");
       const UNIT_TO_MINUTES = { minutes: 1, days: 1440, weeks: 10080, years: 525600 };
       const UNIT_LABELS = { minutes: "minute", days: "day", weeks: "week", years: "year" };
+      let editingItemId = null;
+      let addColorCustomized = false;
+
+      function getDefaultColor(type) {
+        return type === "priority" ? "#ff4da6" : "#38d9ff";
+      }
+
+      function normalizeColor(value, fallback = "#38d9ff") {
+        if (typeof value !== "string") return fallback;
+        const trimmed = value.trim();
+        if (!/^#([0-9a-fA-F]{6})$/.test(trimmed)) return fallback;
+        return trimmed.toLowerCase();
+      }
+
+      function normalizeItem(item) {
+        const normalizedType = item?.type === "priority" ? "priority" : "task";
+        const normalizedSchedule = item?.schedule === "recurring" ? "recurring" : "one-time";
+        const base = { ...item, type: normalizedType, schedule: normalizedSchedule };
+        const color = normalizeColor(item?.color, getDefaultColor(normalizedType));
+
+        if (normalizedSchedule === "recurring") {
+          const { value, unit, intervalMinutes } = normalizeInterval(base);
+          return { ...base, color, intervalValue: value, intervalUnit: unit, intervalMinutes };
+        }
+
+        return { ...base, color, intervalValue: null, intervalUnit: null, intervalMinutes: null };
+      }
 
       function loadItems() {
         try {
           const saved = localStorage.getItem(STORAGE_KEY);
           if (!saved) return [];
           const parsed = JSON.parse(saved);
-          return Array.isArray(parsed) ? parsed : [];
+          if (!Array.isArray(parsed)) return [];
+          return parsed.filter((item) => item && item.id).map(normalizeItem);
         } catch {
           return [];
         }
@@ -207,6 +350,10 @@
 
       function toggleIntervalVisibility() {
         intervalLabel.style.display = scheduleSelect.value === "recurring" ? "grid" : "none";
+      }
+
+      function toggleEditIntervalVisibility() {
+        editIntervalLabel.style.display = editScheduleInput.value === "recurring" ? "grid" : "none";
       }
 
       function isVisibleNow(item, now) {
@@ -254,23 +401,43 @@
           if (listEl.id === "tasks-list") {
             li.classList.add(item.schedule === "recurring" ? "schedule-recurring" : "schedule-one-time");
           }
+          li.style.borderColor = item.color;
           const left = document.createElement("div");
-          left.className = "row";
+          left.className = "item-content";
           const checkbox = document.createElement("input");
           checkbox.type = "checkbox";
           checkbox.ariaLabel = `Complete ${item.name}`;
           checkbox.addEventListener("change", () => completeItem(item.id));
+          const color = document.createElement("span");
+          color.className = "item-color";
+          color.style.backgroundColor = item.color;
           const textWrap = document.createElement("div");
           const name = document.createElement("div");
           name.textContent = item.name;
           const meta = document.createElement("div");
           meta.className = "muted";
           meta.textContent = recurrenceText(item);
+          const actions = document.createElement("div");
+          actions.className = "actions";
+          const editButton = document.createElement("button");
+          editButton.type = "button";
+          editButton.className = "secondary";
+          editButton.textContent = "Edit";
+          editButton.addEventListener("click", () => startEditingItem(item.id));
+          const deleteButton = document.createElement("button");
+          deleteButton.type = "button";
+          deleteButton.className = "danger";
+          deleteButton.textContent = "Delete";
+          deleteButton.addEventListener("click", () => deleteItemPermanently(item.id));
           textWrap.appendChild(name);
           textWrap.appendChild(meta);
           left.appendChild(checkbox);
+          left.appendChild(color);
           left.appendChild(textWrap);
+          actions.appendChild(editButton);
+          actions.appendChild(deleteButton);
           li.appendChild(left);
+          li.appendChild(actions);
           listEl.appendChild(li);
         }
       }
@@ -295,14 +462,63 @@
           itemId: item.id,
           name: item.name,
           type: item.type,
+          color: item.color,
           completedAt: now,
         });
         saveHistory(history);
         render();
       }
 
+      function syncHistoryForItem(item) {
+        const history = loadHistory();
+        let changed = false;
+        const updated = history.map((entry) => {
+          if (entry.itemId !== item.id) return entry;
+          changed = true;
+          return { ...entry, name: item.name, color: item.color, type: item.type };
+        });
+        if (changed) saveHistory(updated);
+      }
+
+      function deleteItemPermanently(id) {
+        const items = loadItems();
+        const itemToDelete = items.find((item) => item.id === id);
+        if (!itemToDelete) return;
+        const confirmed = window.confirm(`Delete "${itemToDelete.name}" permanently from the queue?`);
+        if (!confirmed) return;
+        saveItems(items.filter((item) => item.id !== id));
+        if (editingItemId === id) closeEditPanel();
+        render();
+      }
+
+      function startEditingItem(id) {
+        const items = loadItems();
+        const item = items.find((candidate) => candidate.id === id);
+        if (!item) return;
+        editingItemId = id;
+        editNameInput.value = item.name;
+        editScheduleInput.value = item.schedule;
+        const { value, unit } = normalizeInterval(item);
+        editIntervalValueInput.value = value;
+        editIntervalUnitInput.value = unit;
+        editColorInput.value = item.color;
+        toggleEditIntervalVisibility();
+        editPanel.hidden = false;
+        editNameInput.focus();
+      }
+
+      function closeEditPanel() {
+        editingItemId = null;
+        editPanel.hidden = true;
+        editForm.reset();
+        editScheduleInput.value = "one-time";
+        editIntervalUnitInput.value = "days";
+        toggleEditIntervalVisibility();
+      }
+
       function renderHistory() {
         historyList.innerHTML = "";
+        const itemsById = new Map(loadItems().map((item) => [item.id, item]));
         const recent = loadHistory()
           .filter((entry) => entry && entry.name && entry.completedAt)
           .sort((a, b) => b.completedAt - a.completedAt)
@@ -319,6 +535,13 @@
         for (const entry of recent) {
           const li = document.createElement("li");
           const left = document.createElement("div");
+          left.className = "item-content";
+          const color = document.createElement("span");
+          color.className = "item-color";
+          const linkedItem = itemsById.get(entry.itemId);
+          const colorValue = normalizeColor(entry.color, linkedItem?.color || getDefaultColor(entry.type));
+          color.style.backgroundColor = colorValue;
+          li.style.borderColor = colorValue;
           const name = document.createElement("div");
           name.textContent = entry.name;
           const meta = document.createElement("div");
@@ -326,9 +549,26 @@
           const completedAt = new Date(entry.completedAt).toLocaleString();
           const typeLabel = entry.type === "priority" ? "Priority" : "Task";
           meta.textContent = `${typeLabel} • Completed ${completedAt}`;
-          left.appendChild(name);
-          left.appendChild(meta);
+          const textWrap = document.createElement("div");
+          textWrap.appendChild(name);
+          textWrap.appendChild(meta);
+          const actions = document.createElement("div");
+          actions.className = "actions";
+          const editButton = document.createElement("button");
+          editButton.type = "button";
+          editButton.className = "secondary";
+          editButton.textContent = "Edit";
+          if (linkedItem) {
+            editButton.addEventListener("click", () => startEditingItem(linkedItem.id));
+          } else {
+            editButton.disabled = true;
+            editButton.title = "Item no longer exists in the queue";
+          }
+          actions.appendChild(editButton);
+          left.appendChild(color);
+          left.appendChild(textWrap);
           li.appendChild(left);
+          li.appendChild(actions);
           historyList.appendChild(li);
         }
       }
@@ -336,19 +576,20 @@
       form.addEventListener("submit", (event) => {
         event.preventDefault();
         const nameInput = document.getElementById("name");
-        const typeInput = document.getElementById("type");
         const schedule = scheduleSelect.value;
         const name = nameInput.value.trim();
         if (!name) return;
         const intervalValue = Math.max(1, Number(intervalValueInput.value) || 1);
         const intervalUnit = UNIT_TO_MINUTES[intervalUnitInput.value] ? intervalUnitInput.value : "minutes";
         const intervalMinutes = intervalValue * UNIT_TO_MINUTES[intervalUnit];
+        const color = normalizeColor(colorInput.value, getDefaultColor(typeInput.value));
         const now = Date.now();
 
         const newItem = {
           id: crypto.randomUUID(),
           name,
           type: typeInput.value,
+          color,
           schedule,
           intervalMinutes: schedule === "recurring" ? intervalMinutes : null,
           intervalValue: schedule === "recurring" ? intervalValue : null,
@@ -364,12 +605,57 @@
         form.reset();
         scheduleSelect.value = "one-time";
         intervalUnitInput.value = "days";
+        colorInput.value = getDefaultColor(typeInput.value);
+        addColorCustomized = false;
         toggleIntervalVisibility();
         render();
       });
 
+      editForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        if (!editingItemId) return;
+        const name = editNameInput.value.trim();
+        if (!name) return;
+
+        const items = loadItems();
+        const itemIndex = items.findIndex((item) => item.id === editingItemId);
+        if (itemIndex < 0) return;
+        const currentItem = items[itemIndex];
+        const schedule = editScheduleInput.value;
+        const color = normalizeColor(editColorInput.value, getDefaultColor(currentItem.type));
+        const intervalValue = Math.max(1, Number(editIntervalValueInput.value) || 1);
+        const intervalUnit = UNIT_TO_MINUTES[editIntervalUnitInput.value] ? editIntervalUnitInput.value : "minutes";
+        const intervalMinutes = intervalValue * UNIT_TO_MINUTES[intervalUnit];
+        const updated = {
+          ...currentItem,
+          name,
+          color,
+          schedule,
+          intervalMinutes: schedule === "recurring" ? intervalMinutes : null,
+          intervalValue: schedule === "recurring" ? intervalValue : null,
+          intervalUnit: schedule === "recurring" ? intervalUnit : null,
+          nextDueAt: schedule === "recurring" ? Number(currentItem.nextDueAt) || Date.now() : currentItem.nextDueAt,
+        };
+        items[itemIndex] = normalizeItem(updated);
+        saveItems(items);
+        syncHistoryForItem(items[itemIndex]);
+        closeEditPanel();
+        render();
+      });
+
+      typeInput.addEventListener("change", () => {
+        if (!addColorCustomized) colorInput.value = getDefaultColor(typeInput.value);
+      });
+      colorInput.addEventListener("input", () => {
+        addColorCustomized = true;
+      });
       scheduleSelect.addEventListener("change", toggleIntervalVisibility);
+      editScheduleInput.addEventListener("change", toggleEditIntervalVisibility);
+      cancelEditButton.addEventListener("click", closeEditPanel);
+
+      colorInput.value = getDefaultColor(typeInput.value);
       toggleIntervalVisibility();
+      toggleEditIntervalVisibility();
       render();
       setInterval(render, 30 * 1000);
     </script>
