@@ -24,9 +24,9 @@
         box-sizing: border-box;
       }
       body {
-        margin: 0;
-        padding: 1.4rem;
-        max-width: 920px;
+        margin: 0 auto;
+        padding: clamp(0.8rem, 2.8vw, 1.4rem);
+        width: min(100%, 920px);
         min-height: 100vh;
         position: relative;
         overflow-x: hidden;
@@ -190,6 +190,41 @@
       #interval-label,
       #edit-interval-label {
         grid-column: 1 / -1;
+      }
+      @media (max-width: 700px) {
+        h1 {
+          margin-bottom: 0.8rem;
+          font-size: 1.5rem;
+        }
+        form {
+          grid-template-columns: 1fr;
+          padding: 0.85rem;
+        }
+        .section-header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .sort-control {
+          width: 100%;
+          justify-content: space-between;
+        }
+        .sort-control select {
+          min-width: 0;
+          width: min(100%, 220px);
+        }
+        li {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 0.55rem;
+        }
+        .item-content {
+          flex-wrap: wrap;
+        }
+        .actions {
+          width: 100%;
+          justify-content: flex-end;
+          flex-wrap: wrap;
+        }
       }
     </style>
   </head>
