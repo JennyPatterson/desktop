@@ -6,25 +6,41 @@
     <title>Priorities + Tasks</title>
     <style>
       :root {
-        color-scheme: light dark;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        color-scheme: light;
+        font-family: "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        --bg-top: #edf5ff;
+        --bg-bottom: #f7fbf4;
+        --card-bg: #ffffffd6;
+        --card-border: #bdd1e7;
+        --text-main: #27384a;
+        --text-muted: #5d7186;
+      }
+      * {
+        box-sizing: border-box;
       }
       body {
         margin: 0;
-        padding: 1rem;
-        max-width: 900px;
+        padding: 1.4rem;
+        max-width: 920px;
+        min-height: 100vh;
+        background: linear-gradient(165deg, var(--bg-top), var(--bg-bottom));
+        color: var(--text-main);
       }
       h1 {
         margin-top: 0;
+        margin-bottom: 1rem;
+        letter-spacing: 0.02em;
       }
       form {
         display: grid;
         gap: 0.6rem;
         grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
         align-items: end;
-        padding: 0.8rem;
-        border: 1px solid #7a7a7a55;
-        border-radius: 8px;
+        padding: 1rem;
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        background: var(--card-bg);
+        box-shadow: 0 8px 25px #5c7d9b14;
         margin-bottom: 1rem;
       }
       label {
@@ -37,6 +53,15 @@
       button {
         font: inherit;
         padding: 0.4rem;
+        border-radius: 8px;
+        border: 1px solid #b4c7db;
+        background: #fff;
+        color: inherit;
+      }
+      button {
+        background: #3d7dbf;
+        color: #fff;
+        border-color: #3d7dbf;
       }
       ul {
         list-style: none;
@@ -47,17 +72,41 @@
         align-items: center;
         justify-content: space-between;
         gap: 0.8rem;
-        padding: 0.45rem 0.3rem;
-        border-bottom: 1px solid #7a7a7a33;
+        padding: 0.55rem 0.6rem;
+        border: 1px solid #c6d6e685;
+        border-radius: 10px;
+        background: #f8fbff;
+        margin-bottom: 0.45rem;
+      }
+      li.schedule-one-time {
+        background: #e8f3ff;
+        border-color: #8ebef2;
+      }
+      li.schedule-recurring {
+        background: #fff7d9;
+        border-color: #dfc46a;
       }
       .muted {
-        opacity: 0.75;
+        color: var(--text-muted);
         font-size: 0.85rem;
       }
       .row {
         display: flex;
         align-items: center;
         gap: 0.6rem;
+      }
+      section {
+        margin-bottom: 0.9rem;
+        padding: 0.7rem 0.85rem 0.35rem;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        box-shadow: 0 8px 20px #688aa80f;
+      }
+      h2 {
+        margin-top: 0.2rem;
+        margin-bottom: 0.6rem;
+        font-size: 1.05rem;
       }
     </style>
   </head>
@@ -202,6 +251,9 @@
 
         for (const item of items) {
           const li = document.createElement("li");
+          if (listEl.id === "tasks-list") {
+            li.classList.add(item.schedule === "recurring" ? "schedule-recurring" : "schedule-one-time");
+          }
           const left = document.createElement("div");
           left.className = "row";
           const checkbox = document.createElement("input");
