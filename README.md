@@ -15,8 +15,10 @@ Simple GitHub Pages-ready task tracker with local persistence.
 - Edit item name, recurrence, and colour from the queue or completion history
 - Permanently delete queued items
 - Dark-mode psychedelic visual theme with high-contrast text
-- Data persists in the browser via `localStorage` and syncs into a shareable URL hash
-- **Sync Across Devices** section provides a copyable sync link so desktop/mobile can use one shared tasks + history state
+- Data persists locally in the browser via `localStorage`
+- **Sync Across Devices** uses GitHub Gists as the canonical shared state so mobile/desktop refreshes stay in sync
+- Shared links are anonymous (`?sync=<gist-id>`) and readable without sign-in; writing requires a GitHub token with gist scope on that device
+- Beta reset: legacy hash-based state migration is intentionally disabled and local state starts fresh once
 
 ## Run / Host
 
