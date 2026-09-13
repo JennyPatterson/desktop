@@ -178,18 +178,11 @@
     </style>
   </head>
   <body>
-    <h1>Priorities & Tasks</h1>
+    <h1>Tasks</h1>
     <form id="item-form">
       <label>
         Name
         <input id="name" name="name" required maxlength="200" placeholder="e.g. Plan sprint" />
-      </label>
-      <label>
-        Type
-        <select id="type" name="type">
-          <option value="priority">Priority</option>
-          <option value="task">Task</option>
-        </select>
       </label>
       <label>
         Schedule
@@ -204,6 +197,7 @@
           <input id="interval-value" name="interval-value" type="number" min="1" step="1" value="1" />
           <select id="interval-unit" name="interval-unit">
             <option value="minutes">minutes</option>
+            <option value="hours">hours</option>
             <option value="days" selected>days</option>
             <option value="weeks">weeks</option>
             <option value="years">years</option>
@@ -237,6 +231,7 @@
             <input id="edit-interval-value" name="edit-interval-value" type="number" min="1" step="1" value="1" />
             <select id="edit-interval-unit" name="edit-interval-unit">
               <option value="minutes">minutes</option>
+              <option value="hours">hours</option>
               <option value="days">days</option>
               <option value="weeks">weeks</option>
               <option value="years">years</option>
@@ -255,11 +250,6 @@
     </section>
 
     <section>
-      <h2>Current Priorities</h2>
-      <ul id="priorities-list"></ul>
-    </section>
-
-    <section>
       <h2>Current Tasks</h2>
       <ul id="tasks-list"></ul>
     </section>
@@ -273,7 +263,6 @@
       const STORAGE_KEY = "priorityTaskApp.items.v1";
       const HISTORY_STORAGE_KEY = "priorityTaskApp.history.v1";
       const form = document.getElementById("item-form");
-      const typeInput = document.getElementById("type");
       const colorInput = document.getElementById("color");
       const scheduleSelect = document.getElementById("schedule");
       const intervalLabel = document.getElementById("interval-label");
@@ -288,16 +277,15 @@
       const editIntervalUnitInput = document.getElementById("edit-interval-unit");
       const editColorInput = document.getElementById("edit-color");
       const cancelEditButton = document.getElementById("cancel-edit");
-      const prioritiesList = document.getElementById("priorities-list");
       const tasksList = document.getElementById("tasks-list");
       const historyList = document.getElementById("history-list");
-      const UNIT_TO_MINUTES = { minutes: 1, days: 1440, weeks: 10080, years: 525600 };
-      const UNIT_LABELS = { minutes: "minute", days: "day", weeks: "week", years: "year" };
+      const UNIT_TO_MINUTES = { minutes: 1, hours: 60, days: 1440, weeks: 10080, years: 525600 };
+      const UNIT_LABELS = { minutes: "minute", hours: "hour", days: "day", weeks: "week", years: "year" };
       let editingItemId = null;
       let addColorCustomized = false;
 
-      function getDefaultColor(type) {
-        return type === "priority" ? "#ff4da6" : "#38d9ff";
+      function getDefaultColor() {
+        return "#38d9ff";
       }
 
       function normalizeColor(value, fallback = "#38d9ff") {
@@ -308,10 +296,9 @@
       }
 
       function normalizeItem(item) {
-        const normalizedType = item?.type === "priority" ? "priority" : "task";
         const normalizedSchedule = item?.schedule === "recurring" ? "recurring" : "one-time";
-        const base = { ...item, type: normalizedType, schedule: normalizedSchedule };
-        const color = normalizeColor(item?.color, getDefaultColor(normalizedType));
+        const base = { ...item, type: "task", schedule: normalizedSchedule };
+        const color = normalizeColor(item?.color, getDefaultColor());
 
         if (normalizedSchedule === "recurring") {
           const { value, unit, intervalMinutes } = normalizeInterval(base);
@@ -383,9 +370,7 @@
       function render() {
         const now = Date.now();
         const items = loadItems();
-        const visiblePriorities = items.filter((i) => i.type === "priority" && isVisibleNow(i, now));
-        const visibleTasks = items.filter((i) => i.type === "task" && isVisibleNow(i, now));
-        renderList(prioritiesList, visiblePriorities);
+        const visibleTasks = items.filter((i) => isVisibleNow(i, now));
         renderList(tasksList, visibleTasks);
         renderHistory();
       }
@@ -479,9 +464,23 @@
         const updated = history.map((entry) => {
           if (entry.itemId !== item.id) return entry;
           changed = true;
-          return { ...entry, name: item.name, color: item.color, type: item.type };
+          return { ...entry, name: item.name, color: item.color };
         });
         if (changed) saveHistory(updated);
+      }
+
+      function addToQueueNow(itemId) {
+        const items = loadItems();
+        const itemIndex = items.findIndex((item) => item.id === itemId);
+        if (itemIndex < 0) return;
+        const item = items[itemIndex];
+        if (item.schedule === "one-time") {
+          items[itemIndex] = { ...item, completedAt: null };
+        } else {
+          items[itemIndex] = { ...item, nextDueAt: Date.now() };
+        }
+        saveItems(items);
+        render();
       }
 
       function deleteItemPermanently(id) {
@@ -543,7 +542,7 @@
           const color = document.createElement("span");
           color.className = "item-color";
           const linkedItem = itemsById.get(entry.itemId);
-          const colorValue = normalizeColor(entry.color, linkedItem?.color || getDefaultColor(entry.type));
+          const colorValue = normalizeColor(entry.color, linkedItem?.color || getDefaultColor());
           color.style.backgroundColor = colorValue;
           li.style.borderColor = colorValue;
           const name = document.createElement("div");
@@ -551,13 +550,22 @@
           const meta = document.createElement("div");
           meta.className = "muted";
           const completedAt = new Date(entry.completedAt).toLocaleString();
-          const typeLabel = entry.type === "priority" ? "Priority" : "Task";
-          meta.textContent = `${typeLabel} • Completed ${completedAt}`;
+          meta.textContent = `Completed ${completedAt}`;
           const textWrap = document.createElement("div");
           textWrap.appendChild(name);
           textWrap.appendChild(meta);
           const actions = document.createElement("div");
           actions.className = "actions";
+          const addToQueueButton = document.createElement("button");
+          addToQueueButton.type = "button";
+          addToQueueButton.className = "secondary";
+          addToQueueButton.textContent = "Add To Queue Now";
+          if (linkedItem) {
+            addToQueueButton.addEventListener("click", () => addToQueueNow(linkedItem.id));
+          } else {
+            addToQueueButton.disabled = true;
+            addToQueueButton.title = "Item no longer exists in the queue";
+          }
           const editButton = document.createElement("button");
           editButton.type = "button";
           editButton.className = "secondary";
@@ -568,6 +576,7 @@
             editButton.disabled = true;
             editButton.title = "Item no longer exists in the queue";
           }
+          actions.appendChild(addToQueueButton);
           actions.appendChild(editButton);
           left.appendChild(color);
           left.appendChild(textWrap);
@@ -586,13 +595,13 @@
         const intervalValue = Math.max(1, Number(intervalValueInput.value) || 1);
         const intervalUnit = UNIT_TO_MINUTES[intervalUnitInput.value] ? intervalUnitInput.value : "minutes";
         const intervalMinutes = intervalValue * UNIT_TO_MINUTES[intervalUnit];
-        const color = normalizeColor(colorInput.value, getDefaultColor(typeInput.value));
+        const color = normalizeColor(colorInput.value, getDefaultColor());
         const now = Date.now();
 
         const newItem = {
           id: crypto.randomUUID(),
           name,
-          type: typeInput.value,
+          type: "task",
           color,
           schedule,
           intervalMinutes: schedule === "recurring" ? intervalMinutes : null,
@@ -609,7 +618,7 @@
         form.reset();
         scheduleSelect.value = "one-time";
         intervalUnitInput.value = "days";
-        colorInput.value = getDefaultColor(typeInput.value);
+        colorInput.value = getDefaultColor();
         addColorCustomized = false;
         toggleIntervalVisibility();
         render();
@@ -626,7 +635,7 @@
         if (itemIndex < 0) return;
         const currentItem = items[itemIndex];
         const schedule = editScheduleInput.value;
-        const color = normalizeColor(editColorInput.value, getDefaultColor(currentItem.type));
+        const color = normalizeColor(editColorInput.value, getDefaultColor());
         const intervalValue = Math.max(1, Number(editIntervalValueInput.value) || 1);
         const intervalUnit = UNIT_TO_MINUTES[editIntervalUnitInput.value] ? editIntervalUnitInput.value : "minutes";
         const intervalMinutes = intervalValue * UNIT_TO_MINUTES[intervalUnit];
@@ -647,9 +656,6 @@
         render();
       });
 
-      typeInput.addEventListener("change", () => {
-        if (!addColorCustomized) colorInput.value = getDefaultColor(typeInput.value);
-      });
       colorInput.addEventListener("input", () => {
         addColorCustomized = true;
       });
@@ -657,7 +663,7 @@
       editScheduleInput.addEventListener("change", toggleEditIntervalVisibility);
       cancelEditButton.addEventListener("click", closeEditPanel);
 
-      colorInput.value = getDefaultColor(typeInput.value);
+      colorInput.value = getDefaultColor();
       toggleIntervalVisibility();
       toggleEditIntervalVisibility();
       render();
