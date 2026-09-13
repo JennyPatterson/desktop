@@ -144,6 +144,22 @@
         margin-bottom: 0.6rem;
         font-size: 1.05rem;
       }
+      .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.8rem;
+      }
+      .sort-control {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+      .sort-control select {
+        min-width: 140px;
+      }
       .item-content {
         display: flex;
         align-items: center;
@@ -272,7 +288,17 @@
     </section>
 
     <section>
-      <h2>Current Tasks</h2>
+      <div class="section-header">
+        <h2>Current Tasks</h2>
+        <label class="sort-control">
+          Sort by
+          <select id="sort-mode" name="sort-mode">
+            <option value="latency" selected>Latency</option>
+            <option value="priority">Priority</option>
+            <option value="frequency">Frequency</option>
+          </select>
+        </label>
+      </div>
       <ul id="tasks-list"></ul>
     </section>
 
@@ -301,6 +327,7 @@
       const editColorInput = document.getElementById("edit-color");
       const editUrgencyInput = document.getElementById("edit-urgency");
       const cancelEditButton = document.getElementById("cancel-edit");
+      const sortModeInput = document.getElementById("sort-mode");
       const tasksList = document.getElementById("tasks-list");
       const historyList = document.getElementById("history-list");
       const UNIT_TO_MINUTES = { minutes: 1, hours: 60, days: 1440, weeks: 10080, years: 525600 };
@@ -413,15 +440,42 @@
       }
 
       function dueDurationText(item, now) {
-        const dueAt = Math.max(0, Number(item.nextDueAt) || Number(item.createdAt) || now);
+        const dueAt = getDueAt(item, now);
         return `due for ${formatDuration(now - dueAt)}`;
+      }
+
+      function getDueAt(item, now = Date.now()) {
+        return Math.max(0, Number(item.nextDueAt) || Number(item.createdAt) || now);
+      }
+
+      function urgencyRank(item) {
+        const urgency = normalizeUrgency(item?.urgency, "C");
+        const index = URGENCY_VALUES.indexOf(urgency);
+        return index === -1 ? URGENCY_VALUES.indexOf("C") : index;
+      }
+
+      function sortTasks(items, now, mode = "latency") {
+        const byLatency = (a, b) => getDueAt(a, now) - getDueAt(b, now);
+        const byPriority = (a, b) => urgencyRank(a) - urgencyRank(b) || byLatency(a, b);
+        const byFrequency = (a, b) => {
+          const aFrequency = a.schedule === "recurring" ? Number(a.intervalMinutes) || Number.MAX_SAFE_INTEGER : Number.MAX_SAFE_INTEGER;
+          const bFrequency = b.schedule === "recurring" ? Number(b.intervalMinutes) || Number.MAX_SAFE_INTEGER : Number.MAX_SAFE_INTEGER;
+          return aFrequency - bFrequency || byPriority(a, b);
+        };
+
+        return [...items].sort((a, b) => {
+          if (mode === "priority") return byPriority(a, b);
+          if (mode === "frequency") return byFrequency(a, b);
+          return byLatency(a, b);
+        });
       }
 
       function render() {
         const now = Date.now();
         const items = loadItems();
         const visibleTasks = items.filter((i) => isVisibleNow(i, now));
-        renderList(tasksList, visibleTasks, now);
+        const sortedTasks = sortTasks(visibleTasks, now, sortModeInput?.value || "latency");
+        renderList(tasksList, sortedTasks, now);
         renderHistory();
       }
 
@@ -721,6 +775,7 @@
       scheduleSelect.addEventListener("change", toggleIntervalVisibility);
       editScheduleInput.addEventListener("change", toggleEditIntervalVisibility);
       cancelEditButton.addEventListener("click", closeEditPanel);
+      sortModeInput.addEventListener("change", render);
 
       colorInput.value = getDefaultColor();
       urgencyInput.value = "C";
