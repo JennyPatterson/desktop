@@ -368,7 +368,16 @@
     <section>
       <h2>Sync Across Devices</h2>
       <div class="sync-helper">
-        <div class="muted">Use one sync link on desktop and mobile to keep a single shared tasks/history view.</div>
+        <div class="muted">Keep state on GitHub Gists so refresh on desktop picks up mobile changes.</div>
+        <label>
+          GitHub token (gist scope)
+          <input id="github-token" type="password" autocomplete="off" placeholder="github_pat_..." />
+        </label>
+        <div class="actions">
+          <button id="save-github-token" type="button" class="secondary">Save Token</button>
+          <button id="create-shared-sync" type="button">Create Shared Sync Link</button>
+          <button id="sync-now" type="button" class="secondary">Sync Now</button>
+        </div>
         <div class="sync-link-row">
           <input id="sync-link" readonly aria-label="Sync link" />
           <button id="copy-sync-link" type="button" class="secondary">Copy Sync Link</button>
@@ -401,7 +410,14 @@
       const STORAGE_KEY = "priorityTaskApp.items.v1";
       const HISTORY_STORAGE_KEY = "priorityTaskApp.history.v1";
       const STATE_STORAGE_KEY = "priorityTaskApp.state.v2";
+      const GITHUB_TOKEN_STORAGE_KEY = "priorityTaskApp.githubToken.v1";
+      const RESET_FLAG_STORAGE_KEY = "priorityTaskApp.resetForRemoteSync.v1";
       const HASH_STATE_PARAM = "state";
+      const SYNC_ID_PARAM = "sync";
+      const GIST_FILENAME = "priority-task-state.json";
+      const GITHUB_API_BASE = "https://api.github.com";
+      const REMOTE_SYNC_DEBOUNCE_MS = 700;
+      const MAX_REMOTE_PAYLOAD_BYTES = 200000;
       const form = document.getElementById("item-form");
       const colorInput = document.getElementById("color");
       const scheduleSelect = document.getElementById("schedule");
@@ -422,6 +438,10 @@
       const sortModeInput = document.getElementById("sort-mode");
       const tasksList = document.getElementById("tasks-list");
       const historyList = document.getElementById("history-list");
+      const githubTokenInput = document.getElementById("github-token");
+      const saveGithubTokenButton = document.getElementById("save-github-token");
+      const createSharedSyncButton = document.getElementById("create-shared-sync");
+      const syncNowButton = document.getElementById("sync-now");
       const syncLinkInput = document.getElementById("sync-link");
       const copySyncLinkButton = document.getElementById("copy-sync-link");
       const syncCopyStatus = document.getElementById("sync-copy-status");
@@ -430,6 +450,12 @@
       const URGENCY_VALUES = ["S", "A", "B", "C", "D", "E"];
       let editingItemId = null;
       let addColorCustomized = false;
+      let syncId = null;
+      let remoteRevision = 0;
+      let remoteEtag = null;
+      let remoteSyncTimer = null;
+      let pendingRemoteWrite = false;
+      let remoteSyncInFlight = false;
 
       function getDefaultColor() {
         return "#38d9ff";
@@ -527,6 +553,11 @@
       }
 
       function getSyncUrl() {
+        const params = new URLSearchParams(window.location.search);
+        if (syncId) {
+          params.set(SYNC_ID_PARAM, syncId);
+          return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+        }
         return `${window.location.origin}${window.location.pathname}${window.location.search}${window.location.hash}`;
       }
 
@@ -563,32 +594,253 @@
 
       function loadState() {
         const localState = getStateFromLocalStorage();
-        const hashState = getStateFromHash();
-        const state = hashState.updatedAt > localState.updatedAt ? hashState : localState;
-        if (state === hashState && hashState.updatedAt > localState.updatedAt) {
-          try {
-            localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(hashState));
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(hashState.items));
-            localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(hashState.history));
-          } catch {}
-        }
-        return state;
+        return localState;
       }
 
+      function clearLegacyHashStateParam() {
+        try {
+          const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : "";
+          if (!hash) return;
+          const params = new URLSearchParams(hash);
+          if (!params.has(HASH_STATE_PARAM)) return;
+          params.delete(HASH_STATE_PARAM);
+          const nextHash = params.toString();
+          history.replaceState(
+            null,
+            "",
+            `${window.location.pathname}${window.location.search}${nextHash ? `#${nextHash}` : ""}`
+          );
+        } catch {}
+      }
+
+      function nukeLocalStateForFreshStart() {
+        try {
+          if (localStorage.getItem(RESET_FLAG_STORAGE_KEY)) return;
+          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem(HISTORY_STORAGE_KEY);
+          localStorage.removeItem(STATE_STORAGE_KEY);
+          localStorage.setItem(RESET_FLAG_STORAGE_KEY, "1");
+        } catch {}
+      }
+
+      nukeLocalStateForFreshStart();
+      clearLegacyHashStateParam();
       let appState = loadState();
-      if (!hashHasStateParam() && appState.updatedAt > 0) {
-        setStateHash(appState);
-      }
+      syncId = new URLSearchParams(window.location.search).get(SYNC_ID_PARAM) || null;
 
-      function persistState(nextState) {
+      function persistState(nextState, options = {}) {
         const normalized = normalizeSnapshot(nextState);
-        const snapshot = { ...normalized, updatedAt: Date.now() };
+        const snapshot = { ...normalized, updatedAt: options.preserveUpdatedAt ? normalized.updatedAt : Date.now() };
         appState = snapshot;
         localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(snapshot));
         localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot.items));
         localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(snapshot.history));
-        setStateHash(snapshot);
         updateSyncLinkDisplay();
+        if (options.skipRemote !== true) {
+          queueRemoteSync();
+        }
+      }
+
+      function loadGithubToken() {
+        try {
+          return localStorage.getItem(GITHUB_TOKEN_STORAGE_KEY) || "";
+        } catch {
+          return "";
+        }
+      }
+
+      function saveGithubToken(token) {
+        try {
+          if (!token) {
+            localStorage.removeItem(GITHUB_TOKEN_STORAGE_KEY);
+            return;
+          }
+          localStorage.setItem(GITHUB_TOKEN_STORAGE_KEY, token);
+        } catch {}
+      }
+
+      function updateSyncIdInUrl(id) {
+        const params = new URLSearchParams(window.location.search);
+        if (id) {
+          params.set(SYNC_ID_PARAM, id);
+        } else {
+          params.delete(SYNC_ID_PARAM);
+        }
+        const nextSearch = params.toString();
+        history.replaceState(
+          null,
+          "",
+          `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ""}${window.location.hash}`
+        );
+      }
+
+      function buildRemoteDocument(snapshot, revision) {
+        const normalized = normalizeSnapshot(snapshot);
+        return { ...normalized, revision: Math.max(0, Number(revision) || 0) };
+      }
+
+      function parseRemoteDocument(raw) {
+        const normalized = normalizeSnapshot(raw);
+        return { snapshot: normalized, revision: Math.max(0, Number(raw?.revision) || 0) };
+      }
+
+      async function githubApiRequest(path, options = {}, token = githubTokenInput?.value?.trim() || "") {
+        const headers = {
+          Accept: "application/vnd.github+json",
+          "Content-Type": "application/json",
+          ...(options.headers || {}),
+        };
+        if (token) {
+          headers.Authorization = "Bearer " + token;
+        }
+        const response = await fetch(`${GITHUB_API_BASE}${path}`, { ...options, headers });
+        return response;
+      }
+
+      async function readRemoteState(id, token = "") {
+        const response = await githubApiRequest(`/gists/${encodeURIComponent(id)}`, { method: "GET" }, token);
+        if (!response.ok) throw new Error(`Remote fetch failed (${response.status})`);
+        const payload = await response.json();
+        const file = payload?.files?.[GIST_FILENAME];
+        const content = typeof file?.content === "string" ? file.content : "";
+        if (!content) throw new Error("Remote state file missing");
+        const parsed = parseRemoteDocument(JSON.parse(content));
+        return { ...parsed, etag: response.headers.get("etag") };
+      }
+
+      async function createRemoteState(snapshot) {
+        const token = githubTokenInput?.value?.trim() || "";
+        if (!token) throw new Error("Save a GitHub token first.");
+        const document = buildRemoteDocument(snapshot, 1);
+        const content = JSON.stringify(document);
+        if (content.length > MAX_REMOTE_PAYLOAD_BYTES) throw new Error("State is too large to sync.");
+        const response = await githubApiRequest(
+          "/gists",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              description: "priority-task-app sync state",
+              public: true,
+              files: {
+                [GIST_FILENAME]: { content },
+              },
+            }),
+          },
+          token
+        );
+        if (!response.ok) throw new Error(`Create sync link failed (${response.status})`);
+        const payload = await response.json();
+        const id = payload?.id;
+        if (!id) throw new Error("Create sync link failed (missing id)");
+        syncId = id;
+        remoteRevision = 1;
+        remoteEtag = response.headers.get("etag");
+        updateSyncIdInUrl(syncId);
+        updateSyncLinkDisplay("Shared sync link created.");
+      }
+
+      async function writeRemoteState(snapshot, expectedRevision, expectedEtag) {
+        if (!syncId) throw new Error("Missing sync id.");
+        const token = githubTokenInput?.value?.trim() || "";
+        if (!token) throw new Error("Save a GitHub token first.");
+        const nextRevision = Math.max(0, Number(expectedRevision) || 0) + 1;
+        const document = buildRemoteDocument(snapshot, nextRevision);
+        const content = JSON.stringify(document);
+        if (content.length > MAX_REMOTE_PAYLOAD_BYTES) throw new Error("State is too large to sync.");
+        const response = await githubApiRequest(
+          `/gists/${encodeURIComponent(syncId)}`,
+          {
+            method: "PATCH",
+            headers: expectedEtag ? { "If-Match": expectedEtag } : {},
+            body: JSON.stringify({
+              files: {
+                [GIST_FILENAME]: { content },
+              },
+            }),
+          },
+          token
+        );
+        if (response.status === 409 || response.status === 412) {
+          const err = new Error(`Conflict (${response.status})`);
+          err.code = "conflict";
+          throw err;
+        }
+        if (!response.ok) throw new Error(`Remote save failed (${response.status})`);
+        remoteRevision = nextRevision;
+        remoteEtag = response.headers.get("etag");
+      }
+
+      async function reconcileFromRemote() {
+        if (!syncId) return;
+        const token = githubTokenInput?.value?.trim() || "";
+        try {
+          const remote = await readRemoteState(syncId, token);
+          remoteRevision = remote.revision;
+          remoteEtag = remote.etag;
+          if (remote.snapshot.updatedAt >= appState.updatedAt) {
+            persistState(remote.snapshot, { preserveUpdatedAt: true, skipRemote: true });
+            sortModeInput.value = appState.sortMode;
+            render();
+            updateSyncLinkDisplay("Synced from GitHub.");
+            return;
+          }
+          if (token) {
+            queueRemoteSync();
+          } else {
+            updateSyncLinkDisplay("Loaded remote state. Add token to push edits from this device.");
+          }
+        } catch (error) {
+          updateSyncLinkDisplay(`Remote sync unavailable: ${error.message}`);
+        }
+      }
+
+      function queueRemoteSync() {
+        if (!syncId) return;
+        const token = githubTokenInput?.value?.trim() || "";
+        if (!token) return;
+        pendingRemoteWrite = true;
+        if (remoteSyncTimer) {
+          clearTimeout(remoteSyncTimer);
+        }
+        remoteSyncTimer = setTimeout(() => {
+          flushRemoteSync();
+        }, REMOTE_SYNC_DEBOUNCE_MS);
+      }
+
+      async function flushRemoteSync(retryOnConflict = true) {
+        if (!syncId || remoteSyncInFlight || !pendingRemoteWrite) return;
+        const token = githubTokenInput?.value?.trim() || "";
+        if (!token) {
+          pendingRemoteWrite = true;
+          updateSyncLinkDisplay("Add token to sync changes to GitHub.");
+          return;
+        }
+        pendingRemoteWrite = false;
+        remoteSyncInFlight = true;
+        try {
+          await writeRemoteState(appState, remoteRevision, remoteEtag);
+          updateSyncLinkDisplay("Synced to GitHub.");
+        } catch (error) {
+          if (error?.code === "conflict" && retryOnConflict) {
+            const latest = await readRemoteState(syncId, token);
+            remoteRevision = latest.revision;
+            remoteEtag = latest.etag;
+            if (latest.snapshot.updatedAt >= appState.updatedAt) {
+              persistState(latest.snapshot, { preserveUpdatedAt: true, skipRemote: true });
+              sortModeInput.value = appState.sortMode;
+              render();
+              updateSyncLinkDisplay("Conflict resolved using latest remote state.");
+            } else {
+              pendingRemoteWrite = true;
+              await flushRemoteSync(false);
+            }
+          } else {
+            pendingRemoteWrite = true;
+            updateSyncLinkDisplay(`Sync pending: ${error.message}`);
+          }
+        } finally {
+          remoteSyncInFlight = false;
+        }
       }
 
       function loadItems() {
@@ -1012,6 +1264,37 @@
           updateSyncLinkDisplay("Copy failed. Please copy the sync link manually.");
         }
       });
+      saveGithubTokenButton?.addEventListener("click", () => {
+        const token = githubTokenInput?.value?.trim() || "";
+        saveGithubToken(token);
+        updateSyncLinkDisplay(token ? "Token saved on this device." : "Token cleared on this device.");
+      });
+      createSharedSyncButton?.addEventListener("click", async () => {
+        try {
+          await createRemoteState(appState);
+          await reconcileFromRemote();
+          render();
+        } catch (error) {
+          updateSyncLinkDisplay(error?.message || "Unable to create shared sync link.");
+        }
+      });
+      syncNowButton?.addEventListener("click", async () => {
+        try {
+          await reconcileFromRemote();
+          if ((githubTokenInput?.value?.trim() || "") && syncId) {
+            pendingRemoteWrite = true;
+            await flushRemoteSync();
+          }
+        } catch (error) {
+          updateSyncLinkDisplay(error?.message || "Sync failed.");
+        }
+      });
+      window.addEventListener("online", () => {
+        if (syncId && (githubTokenInput?.value?.trim() || "")) {
+          pendingRemoteWrite = true;
+          flushRemoteSync();
+        }
+      });
       window.addEventListener("hashchange", () => {
         appState = loadState();
         sortModeInput.value = appState.sortMode;
@@ -1027,10 +1310,12 @@
       sortModeInput.value = appState.sortMode;
       urgencyInput.value = "C";
       editUrgencyInput.value = "C";
+      githubTokenInput.value = loadGithubToken();
       updateSyncLinkDisplay();
       toggleIntervalVisibility();
       toggleEditIntervalVisibility();
       render();
+      reconcileFromRemote();
       setInterval(render, 30 * 1000);
     </script>
   </body>
