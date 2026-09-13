@@ -1,16 +1,16 @@
 # desktop
 
-Simple GitHub Pages-ready priority and task tracker with local persistence.
+Simple GitHub Pages-ready task tracker with local persistence.
 
 ## Features
 
-- Save items as either **Priority** or **Task**
 - Set each item to **One-time** or **Recurring**
-- Configure recurring cadence in **minutes, days, weeks, or years**
+- Configure recurring cadence in **minutes, hours, days, weeks, or years**
 - Pick a custom colour per item
 - Check items off when complete
 - Recurring items automatically return to the queue after their configured delay
-- Completion history feed shows the 20 most recently completed priorities/tasks
+- Completion history feed shows the 20 most recently completed tasks
+- Completion history entries include **Add To Queue Now** to instantly make a linked item due
 - Edit item name, recurrence, and colour from the queue or completion history
 - Permanently delete queued items
 - Dark-mode psychedelic visual theme with high-contrast text
