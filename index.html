@@ -83,8 +83,16 @@
         </select>
       </label>
       <label id="interval-label" style="display: none">
-        Recur every (minutes)
-        <input id="interval-minutes" name="interval-minutes" type="number" min="1" step="1" value="1440" />
+        Recur every
+        <div class="row">
+          <input id="interval-value" name="interval-value" type="number" min="1" step="1" value="1" />
+          <select id="interval-unit" name="interval-unit">
+            <option value="minutes">minutes</option>
+            <option value="days" selected>days</option>
+            <option value="weeks">weeks</option>
+            <option value="years">years</option>
+          </select>
+        </div>
       </label>
       <button type="submit">Save</button>
     </form>
@@ -104,9 +112,12 @@
       const form = document.getElementById("item-form");
       const scheduleSelect = document.getElementById("schedule");
       const intervalLabel = document.getElementById("interval-label");
-      const intervalInput = document.getElementById("interval-minutes");
+      const intervalValueInput = document.getElementById("interval-value");
+      const intervalUnitInput = document.getElementById("interval-unit");
       const prioritiesList = document.getElementById("priorities-list");
       const tasksList = document.getElementById("tasks-list");
+      const UNIT_TO_MINUTES = { minutes: 1, days: 1440, weeks: 10080, years: 525600 };
+      const UNIT_LABELS = { minutes: "minute", days: "day", weeks: "week", years: "year" };
 
       function loadItems() {
         try {
@@ -132,10 +143,19 @@
         return (item.nextDueAt || 0) <= now;
       }
 
+      function normalizeInterval(item) {
+        const unit = UNIT_TO_MINUTES[item.intervalUnit] ? item.intervalUnit : "minutes";
+        const value = Math.max(1, Number(item.intervalValue) || 1);
+        const intervalMinutesFromValue = value * UNIT_TO_MINUTES[unit];
+        const intervalMinutes = Math.max(1, Number(item.intervalMinutes) || intervalMinutesFromValue);
+        if (item.intervalUnit || item.intervalValue) return { value, unit, intervalMinutes };
+        return { value: intervalMinutes, unit: "minutes", intervalMinutes };
+      }
+
       function recurrenceText(item) {
         if (item.schedule === "one-time") return "one-time";
-        const mins = Number(item.intervalMinutes) || 0;
-        return `recurs every ${mins} minute${mins === 1 ? "" : "s"}`;
+        const { value, unit } = normalizeInterval(item);
+        return `recurs every ${value} ${UNIT_LABELS[unit]}${value === 1 ? "" : "s"}`;
       }
 
       function render() {
@@ -187,7 +207,7 @@
           if (item.schedule === "one-time") {
             return { ...item, completedAt: now };
           }
-          const intervalMinutes = Math.max(1, Number(item.intervalMinutes) || 1);
+          const { intervalMinutes } = normalizeInterval(item);
           return { ...item, nextDueAt: now + intervalMinutes * 60 * 1000, completedAt: now };
         });
         saveItems(items);
@@ -201,7 +221,9 @@
         const schedule = scheduleSelect.value;
         const name = nameInput.value.trim();
         if (!name) return;
-        const intervalMinutes = Math.max(1, Number(intervalInput.value) || 1);
+        const intervalValue = Math.max(1, Number(intervalValueInput.value) || 1);
+        const intervalUnit = UNIT_TO_MINUTES[intervalUnitInput.value] ? intervalUnitInput.value : "minutes";
+        const intervalMinutes = intervalValue * UNIT_TO_MINUTES[intervalUnit];
         const now = Date.now();
 
         const newItem = {
@@ -210,6 +232,8 @@
           type: typeInput.value,
           schedule,
           intervalMinutes: schedule === "recurring" ? intervalMinutes : null,
+          intervalValue: schedule === "recurring" ? intervalValue : null,
+          intervalUnit: schedule === "recurring" ? intervalUnit : null,
           nextDueAt: now,
           completedAt: null,
           createdAt: now,
@@ -220,6 +244,7 @@
         saveItems(items);
         form.reset();
         scheduleSelect.value = "one-time";
+        intervalUnitInput.value = "days";
         toggleIntervalVisibility();
         render();
       });

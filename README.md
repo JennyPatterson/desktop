@@ -6,6 +6,7 @@ Simple GitHub Pages-ready priority and task tracker with local persistence.
 
 - Save items as either **Priority** or **Task**
 - Set each item to **One-time** or **Recurring**
+- Configure recurring cadence in **minutes, days, weeks, or years**
 - Check items off when complete
 - Recurring items automatically return to the queue after their configured delay
 - Data persists in the browser via `localStorage`
