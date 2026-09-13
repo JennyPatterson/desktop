@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Priorities + Tasks</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      }
+      body {
+        margin: 0;
+        padding: 1rem;
+        max-width: 900px;
+      }
+      h1 {
+        margin-top: 0;
+      }
+      form {
+        display: grid;
+        gap: 0.6rem;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        align-items: end;
+        padding: 0.8rem;
+        border: 1px solid #7a7a7a55;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+      }
+      label {
+        display: grid;
+        gap: 0.2rem;
+        font-size: 0.9rem;
+      }
+      input,
+      select,
+      button {
+        font: inherit;
+        padding: 0.4rem;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+      }
+      li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.8rem;
+        padding: 0.45rem 0.3rem;
+        border-bottom: 1px solid #7a7a7a33;
+      }
+      .muted {
+        opacity: 0.75;
+        font-size: 0.85rem;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Priorities & Tasks</h1>
+    <form id="item-form">
+      <label>
+        Name
+        <input id="name" name="name" required maxlength="200" placeholder="e.g. Plan sprint" />
+      </label>
+      <label>
+        Type
+        <select id="type" name="type">
+          <option value="priority">Priority</option>
+          <option value="task">Task</option>
+        </select>
+      </label>
+      <label>
+        Schedule
+        <select id="schedule" name="schedule">
+          <option value="one-time">One-time</option>
+          <option value="recurring">Recurring</option>
+        </select>
+      </label>
+      <label id="interval-label" style="display: none">
+        Recur every (minutes)
+        <input id="interval-minutes" name="interval-minutes" type="number" min="1" step="1" value="1440" />
+      </label>
+      <button type="submit">Save</button>
+    </form>
+
+    <section>
+      <h2>Current Priorities</h2>
+      <ul id="priorities-list"></ul>
+    </section>
+
+    <section>
+      <h2>Current Tasks</h2>
+      <ul id="tasks-list"></ul>
+    </section>
+
+    <script>
+      const STORAGE_KEY = "priorityTaskApp.items.v1";
+      const form = document.getElementById("item-form");
+      const scheduleSelect = document.getElementById("schedule");
+      const intervalLabel = document.getElementById("interval-label");
+      const intervalInput = document.getElementById("interval-minutes");
+      const prioritiesList = document.getElementById("priorities-list");
+      const tasksList = document.getElementById("tasks-list");
+
+      function loadItems() {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (!saved) return [];
+          const parsed = JSON.parse(saved);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function saveItems(items) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+      }
+
+      function toggleIntervalVisibility() {
+        intervalLabel.style.display = scheduleSelect.value === "recurring" ? "grid" : "none";
+      }
+
+      function isVisibleNow(item, now) {
+        if (item.schedule === "one-time") return !item.completedAt;
+        return (item.nextDueAt || 0) <= now;
+      }
+
+      function recurrenceText(item) {
+        if (item.schedule === "one-time") return "one-time";
+        const mins = Number(item.intervalMinutes) || 0;
+        return `recurs every ${mins} minute${mins === 1 ? "" : "s"}`;
+      }
+
+      function render() {
+        const now = Date.now();
+        const items = loadItems();
+        const visiblePriorities = items.filter((i) => i.type === "priority" && isVisibleNow(i, now));
+        const visibleTasks = items.filter((i) => i.type === "task" && isVisibleNow(i, now));
+        renderList(prioritiesList, visiblePriorities);
+        renderList(tasksList, visibleTasks);
+      }
+
+      function renderList(listEl, items) {
+        listEl.innerHTML = "";
+        if (!items.length) {
+          const empty = document.createElement("li");
+          empty.className = "muted";
+          empty.textContent = "No items right now.";
+          listEl.appendChild(empty);
+          return;
+        }
+
+        for (const item of items) {
+          const li = document.createElement("li");
+          const left = document.createElement("div");
+          left.className = "row";
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.ariaLabel = `Complete ${item.name}`;
+          checkbox.addEventListener("change", () => completeItem(item.id));
+          const textWrap = document.createElement("div");
+          const name = document.createElement("div");
+          name.textContent = item.name;
+          const meta = document.createElement("div");
+          meta.className = "muted";
+          meta.textContent = recurrenceText(item);
+          textWrap.appendChild(name);
+          textWrap.appendChild(meta);
+          left.appendChild(checkbox);
+          left.appendChild(textWrap);
+          li.appendChild(left);
+          listEl.appendChild(li);
+        }
+      }
+
+      function completeItem(id) {
+        const now = Date.now();
+        const items = loadItems().map((item) => {
+          if (item.id !== id) return item;
+          if (item.schedule === "one-time") {
+            return { ...item, completedAt: now };
+          }
+          const intervalMinutes = Math.max(1, Number(item.intervalMinutes) || 1);
+          return { ...item, nextDueAt: now + intervalMinutes * 60 * 1000, completedAt: now };
+        });
+        saveItems(items);
+        render();
+      }
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const nameInput = document.getElementById("name");
+        const typeInput = document.getElementById("type");
+        const schedule = scheduleSelect.value;
+        const name = nameInput.value.trim();
+        if (!name) return;
+        const intervalMinutes = Math.max(1, Number(intervalInput.value) || 1);
+        const now = Date.now();
+
+        const newItem = {
+          id: crypto.randomUUID(),
+          name,
+          type: typeInput.value,
+          schedule,
+          intervalMinutes: schedule === "recurring" ? intervalMinutes : null,
+          nextDueAt: now,
+          completedAt: null,
+          createdAt: now,
+        };
+
+        const items = loadItems();
+        items.push(newItem);
+        saveItems(items);
+        form.reset();
+        scheduleSelect.value = "one-time";
+        toggleIntervalVisibility();
+        render();
+      });
+
+      scheduleSelect.addEventListener("change", toggleIntervalVisibility);
+      toggleIntervalVisibility();
+      render();
+      setInterval(render, 30 * 1000);
+    </script>
+  </body>
+</html>
