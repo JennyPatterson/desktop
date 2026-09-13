@@ -107,8 +107,14 @@
       <ul id="tasks-list"></ul>
     </section>
 
+    <section>
+      <h2>Completion History</h2>
+      <ul id="history-list"></ul>
+    </section>
+
     <script>
       const STORAGE_KEY = "priorityTaskApp.items.v1";
+      const HISTORY_STORAGE_KEY = "priorityTaskApp.history.v1";
       const form = document.getElementById("item-form");
       const scheduleSelect = document.getElementById("schedule");
       const intervalLabel = document.getElementById("interval-label");
@@ -116,6 +122,7 @@
       const intervalUnitInput = document.getElementById("interval-unit");
       const prioritiesList = document.getElementById("priorities-list");
       const tasksList = document.getElementById("tasks-list");
+      const historyList = document.getElementById("history-list");
       const UNIT_TO_MINUTES = { minutes: 1, days: 1440, weeks: 10080, years: 525600 };
       const UNIT_LABELS = { minutes: "minute", days: "day", weeks: "week", years: "year" };
 
@@ -132,6 +139,21 @@
 
       function saveItems(items) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+      }
+
+      function loadHistory() {
+        try {
+          const saved = localStorage.getItem(HISTORY_STORAGE_KEY);
+          if (!saved) return [];
+          const parsed = JSON.parse(saved);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function saveHistory(history) {
+        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history.slice(0, 200)));
       }
 
       function toggleIntervalVisibility() {
@@ -165,6 +187,7 @@
         const visibleTasks = items.filter((i) => i.type === "task" && isVisibleNow(i, now));
         renderList(prioritiesList, visiblePriorities);
         renderList(tasksList, visibleTasks);
+        renderHistory();
       }
 
       function renderList(listEl, items) {
@@ -202,16 +225,60 @@
 
       function completeItem(id) {
         const now = Date.now();
-        const items = loadItems().map((item) => {
-          if (item.id !== id) return item;
-          if (item.schedule === "one-time") {
-            return { ...item, completedAt: now };
-          }
+        const items = loadItems();
+        const itemIndex = items.findIndex((item) => item.id === id);
+        if (itemIndex < 0) return;
+
+        const item = items[itemIndex];
+        if (item.schedule === "one-time") {
+          items[itemIndex] = { ...item, completedAt: now };
+        } else {
           const { intervalMinutes } = normalizeInterval(item);
-          return { ...item, nextDueAt: now + intervalMinutes * 60 * 1000, completedAt: now };
-        });
+          items[itemIndex] = { ...item, nextDueAt: now + intervalMinutes * 60 * 1000, completedAt: now };
+        }
         saveItems(items);
+        const history = loadHistory();
+        history.unshift({
+          id: crypto.randomUUID(),
+          itemId: item.id,
+          name: item.name,
+          type: item.type,
+          completedAt: now,
+        });
+        saveHistory(history);
         render();
+      }
+
+      function renderHistory() {
+        historyList.innerHTML = "";
+        const recent = loadHistory()
+          .filter((entry) => entry && entry.name && entry.completedAt)
+          .sort((a, b) => b.completedAt - a.completedAt)
+          .slice(0, 20);
+
+        if (!recent.length) {
+          const empty = document.createElement("li");
+          empty.className = "muted";
+          empty.textContent = "No completed items yet.";
+          historyList.appendChild(empty);
+          return;
+        }
+
+        for (const entry of recent) {
+          const li = document.createElement("li");
+          const left = document.createElement("div");
+          const name = document.createElement("div");
+          name.textContent = entry.name;
+          const meta = document.createElement("div");
+          meta.className = "muted";
+          const completedAt = new Date(entry.completedAt).toLocaleString();
+          const typeLabel = entry.type === "priority" ? "Priority" : "Task";
+          meta.textContent = `${typeLabel} • Completed ${completedAt}`;
+          left.appendChild(name);
+          left.appendChild(meta);
+          li.appendChild(left);
+          historyList.appendChild(li);
+        }
       }
 
       form.addEventListener("submit", (event) => {
