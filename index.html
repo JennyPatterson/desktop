@@ -114,6 +114,24 @@
         border-radius: 10px;
         background: #17112c;
         margin-bottom: 0.45rem;
+        position: relative;
+        overflow: hidden;
+      }
+      li.completing {
+        pointer-events: none;
+      }
+      li.completing::after {
+        content: "";
+        position: absolute;
+        inset: -40%;
+        pointer-events: none;
+        background:
+          radial-gradient(circle at 22% 40%, #fff8 0 7px, transparent 8px),
+          radial-gradient(circle at 48% 20%, #7afcffc2 0 6px, transparent 7px),
+          radial-gradient(circle at 70% 46%, #ffd166ba 0 8px, transparent 9px),
+          radial-gradient(circle at 38% 72%, #ff5cc8b4 0 6px, transparent 7px),
+          radial-gradient(circle at 78% 76%, #b5ff87c2 0 6px, transparent 7px);
+        animation: sparkle-burst 420ms ease-out forwards;
       }
       li.schedule-one-time {
         background: #19142c;
@@ -236,6 +254,23 @@
         text-shadow: 0 1px 0 #ffffff8a, 0 0 6px #ffffffa0;
         box-shadow: 0 0 10px #f4b9ff8a, inset 0 0 6px #ffffffa8;
       }
+      #experience-points {
+        text-align: right;
+        font-weight: 700;
+      }
+      @keyframes sparkle-burst {
+        0% {
+          opacity: 0;
+          transform: scale(0.2);
+        }
+        35% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+          transform: scale(1.05);
+        }
+      }
       #edit-panel[hidden] {
         display: none;
       }
@@ -296,6 +331,10 @@
       <label>
         Name
         <input id="name" name="name" required maxlength="200" placeholder="e.g. Plan sprint" />
+      </label>
+      <label>
+        Experience
+        <input id="experience-points" name="experience-points" type="text" value="0 XP" readonly aria-label="Experience points" />
       </label>
       <label>
         Schedule
@@ -453,6 +492,7 @@
       const intervalValueInput = document.getElementById("interval-value");
       const intervalUnitInput = document.getElementById("interval-unit");
       const urgencyInput = document.getElementById("urgency");
+      const experiencePointsInput = document.getElementById("experience-points");
       const editPanel = document.getElementById("edit-panel");
       const editForm = document.getElementById("edit-form");
       const editNameInput = document.getElementById("edit-name");
@@ -475,6 +515,9 @@
       const syncCopyStatus = document.getElementById("sync-copy-status");
       const UNIT_TO_MINUTES = { minutes: 1, hours: 60, days: 1440, weeks: 10080, years: 525600 };
       const UNIT_LABELS = { minutes: "minute", hours: "hour", days: "day", weeks: "week", years: "year" };
+      const DAILY_INTERVAL_MINUTES = 1440;
+      const WEEKLY_INTERVAL_MINUTES = 10080;
+      const MONTHLY_INTERVAL_MINUTES = 43200;
       const URGENCY_VALUES = ["S", "A", "B", "C", "D", "E"];
       let editingItemId = null;
       let addColorCustomized = false;
@@ -538,8 +581,9 @@
         const items = Array.isArray(snapshot?.items) ? snapshot.items.filter((item) => item && item.id).map(normalizeItem) : [];
         const history = normalizeHistoryEntries(snapshot?.history);
         const sortMode = ["latency", "priority", "frequency"].includes(snapshot?.sortMode) ? snapshot.sortMode : "latency";
+        const experiencePoints = Math.max(0, Math.floor(Number(snapshot?.experiencePoints) || 0));
         const updatedAt = Math.max(0, Number(snapshot?.updatedAt) || inferUpdatedAt(items, history));
-        return { items, history, sortMode, updatedAt };
+        return { items, history, sortMode, experiencePoints, updatedAt };
       }
 
       function encodeStateForHash(snapshot) {
@@ -1011,6 +1055,9 @@
         const items = loadItems();
         const visibleTasks = items.filter((i) => isVisibleNow(i, now));
         const sortedTasks = sortTasks(visibleTasks, now, sortModeInput?.value || "latency");
+        if (experiencePointsInput) {
+          experiencePointsInput.value = `${Math.max(0, Number(appState.experiencePoints) || 0)} XP`;
+        }
         renderList(tasksList, sortedTasks, now);
         renderHistory();
       }
@@ -1036,7 +1083,10 @@
           const checkbox = document.createElement("input");
           checkbox.type = "checkbox";
           checkbox.ariaLabel = `Complete ${item.name}`;
-          checkbox.addEventListener("change", () => completeItem(item.id));
+          checkbox.addEventListener("change", () => {
+            if (!checkbox.checked) return;
+            completeItem(item.id, li, checkbox);
+          });
           const color = document.createElement("span");
           color.className = "item-color";
           color.style.backgroundColor = item.color;
@@ -1073,7 +1123,25 @@
         }
       }
 
-      function completeItem(id) {
+      function getCompletionExperiencePoints(item) {
+        if (!item || item.schedule !== "recurring") return 5;
+        const { intervalMinutes } = normalizeInterval(item);
+        const recurrenceMinutes = Math.max(1, Number(intervalMinutes) || 1);
+        if (recurrenceMinutes <= DAILY_INTERVAL_MINUTES) return 1;
+        if (recurrenceMinutes <= WEEKLY_INTERVAL_MINUTES) return 3;
+        if (recurrenceMinutes <= MONTHLY_INTERVAL_MINUTES) return 5;
+        return 5;
+      }
+
+      function completeItem(id, listItemEl, checkboxEl) {
+        if (listItemEl?.classList.contains("completing")) return;
+        if (checkboxEl) {
+          checkboxEl.disabled = true;
+          checkboxEl.checked = true;
+        }
+        if (listItemEl) listItemEl.classList.add("completing");
+
+        const applyCompletion = () => {
         const now = Date.now();
         const items = loadItems();
         const itemIndex = items.findIndex((item) => item.id === id);
@@ -1086,7 +1154,6 @@
           const { intervalMinutes } = normalizeInterval(item);
           items[itemIndex] = { ...item, nextDueAt: now + intervalMinutes * 60 * 1000, completedAt: now };
         }
-        saveItems(items);
         const history = loadHistory();
         history.unshift({
           id: crypto.randomUUID(),
@@ -1097,8 +1164,21 @@
           completedAt: now,
           urgency: item.urgency,
         });
-        saveHistory(history);
+        const nextExperiencePoints = Math.max(0, Number(appState.experiencePoints) || 0) + getCompletionExperiencePoints(item);
+        persistState({
+          ...appState,
+          items: items.map(normalizeItem),
+          history: normalizeHistoryEntries(history),
+          experiencePoints: nextExperiencePoints,
+        });
         render();
+        };
+
+        if (listItemEl) {
+          setTimeout(applyCompletion, 420);
+        } else {
+          applyCompletion();
+        }
       }
 
       function syncHistoryForItem(item) {

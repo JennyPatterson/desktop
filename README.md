@@ -9,7 +9,9 @@ Simple GitHub Pages-ready task tracker with local persistence.
 - Assign an **Urgency** level per task (`S`, `A`, `B`, `C`, `D`, `E`)
 - Pick a custom colour per item
 - Check items off when complete
+- Sparkle animation plays when a task is checked off
 - Recurring items automatically return to the queue after their configured delay
+- Earn experience points when completing tasks based on recurrence cadence
 - Completion history feed shows the 20 most recently completed tasks
 - Completion history entries include **Add To Queue Now** to instantly make a linked item due
 - Edit item name, recurrence, and colour from the queue or completion history
