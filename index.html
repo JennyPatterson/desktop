@@ -208,6 +208,17 @@
         Colour
         <input id="color" name="color" type="color" value="#4cc9f0" />
       </label>
+      <label>
+        Urgency
+        <select id="urgency" name="urgency">
+          <option value="S">S (Highest)</option>
+          <option value="A">A</option>
+          <option value="B">B</option>
+          <option value="C" selected>C</option>
+          <option value="D">D</option>
+          <option value="E">E (Lowest)</option>
+        </select>
+      </label>
       <button type="submit">Save</button>
     </form>
 
@@ -242,6 +253,17 @@
           Colour
           <input id="edit-color" name="edit-color" type="color" value="#4cc9f0" />
         </label>
+        <label>
+          Urgency
+          <select id="edit-urgency" name="edit-urgency">
+            <option value="S">S (Highest)</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+            <option value="E">E (Lowest)</option>
+          </select>
+        </label>
         <div class="actions">
           <button type="submit">Save changes</button>
           <button id="cancel-edit" type="button" class="secondary">Cancel</button>
@@ -268,6 +290,7 @@
       const intervalLabel = document.getElementById("interval-label");
       const intervalValueInput = document.getElementById("interval-value");
       const intervalUnitInput = document.getElementById("interval-unit");
+      const urgencyInput = document.getElementById("urgency");
       const editPanel = document.getElementById("edit-panel");
       const editForm = document.getElementById("edit-form");
       const editNameInput = document.getElementById("edit-name");
@@ -276,11 +299,13 @@
       const editIntervalValueInput = document.getElementById("edit-interval-value");
       const editIntervalUnitInput = document.getElementById("edit-interval-unit");
       const editColorInput = document.getElementById("edit-color");
+      const editUrgencyInput = document.getElementById("edit-urgency");
       const cancelEditButton = document.getElementById("cancel-edit");
       const tasksList = document.getElementById("tasks-list");
       const historyList = document.getElementById("history-list");
       const UNIT_TO_MINUTES = { minutes: 1, hours: 60, days: 1440, weeks: 10080, years: 525600 };
       const UNIT_LABELS = { minutes: "minute", hours: "hour", days: "day", weeks: "week", years: "year" };
+      const URGENCY_VALUES = ["S", "A", "B", "C", "D", "E"];
       let editingItemId = null;
       let addColorCustomized = false;
 
@@ -295,17 +320,24 @@
         return trimmed.toLowerCase();
       }
 
+      function normalizeUrgency(value, fallback = "C") {
+        if (typeof value !== "string") return fallback;
+        const normalized = value.trim().toUpperCase();
+        return URGENCY_VALUES.includes(normalized) ? normalized : fallback;
+      }
+
       function normalizeItem(item) {
         const normalizedSchedule = item?.schedule === "recurring" ? "recurring" : "one-time";
         const base = { ...item, type: "task", schedule: normalizedSchedule };
         const color = normalizeColor(item?.color, getDefaultColor());
+        const urgency = normalizeUrgency(item?.urgency, "C");
 
         if (normalizedSchedule === "recurring") {
           const { value, unit, intervalMinutes } = normalizeInterval(base);
-          return { ...base, color, intervalValue: value, intervalUnit: unit, intervalMinutes };
+          return { ...base, color, urgency, intervalValue: value, intervalUnit: unit, intervalMinutes };
         }
 
-        return { ...base, color, intervalValue: null, intervalUnit: null, intervalMinutes: null };
+        return { ...base, color, urgency, intervalValue: null, intervalUnit: null, intervalMinutes: null };
       }
 
       function loadItems() {
@@ -423,7 +455,7 @@
           name.textContent = item.name;
           const meta = document.createElement("div");
           meta.className = "muted";
-          meta.textContent = `${recurrenceText(item)} • ${dueDurationText(item, now)}`;
+          meta.textContent = `urgency ${item.urgency} • ${recurrenceText(item)} • ${dueDurationText(item, now)}`;
           const actions = document.createElement("div");
           actions.className = "actions";
           const editButton = document.createElement("button");
@@ -471,6 +503,7 @@
           type: item.type,
           color: item.color,
           completedAt: now,
+          urgency: item.urgency,
         });
         saveHistory(history);
         render();
@@ -482,7 +515,7 @@
         const updated = history.map((entry) => {
           if (entry.itemId !== item.id) return entry;
           changed = true;
-          return { ...entry, name: item.name, color: item.color };
+          return { ...entry, name: item.name, color: item.color, urgency: item.urgency };
         });
         if (changed) saveHistory(updated);
       }
@@ -523,6 +556,7 @@
         editIntervalValueInput.value = value;
         editIntervalUnitInput.value = unit;
         editColorInput.value = item.color;
+        editUrgencyInput.value = item.urgency;
         toggleEditIntervalVisibility();
         editPanel.hidden = false;
         editNameInput.focus();
@@ -534,6 +568,7 @@
         editForm.reset();
         editScheduleInput.value = "one-time";
         editIntervalUnitInput.value = "days";
+        editUrgencyInput.value = "C";
         toggleEditIntervalVisibility();
       }
 
@@ -568,7 +603,8 @@
           const meta = document.createElement("div");
           meta.className = "muted";
           const completedAt = new Date(entry.completedAt).toLocaleString();
-          meta.textContent = `Completed ${completedAt}`;
+          const urgency = normalizeUrgency(entry.urgency, linkedItem?.urgency || "C");
+          meta.textContent = `Urgency ${urgency} • Completed ${completedAt}`;
           const textWrap = document.createElement("div");
           textWrap.appendChild(name);
           textWrap.appendChild(meta);
@@ -614,6 +650,7 @@
         const intervalUnit = UNIT_TO_MINUTES[intervalUnitInput.value] ? intervalUnitInput.value : "minutes";
         const intervalMinutes = intervalValue * UNIT_TO_MINUTES[intervalUnit];
         const color = normalizeColor(colorInput.value, getDefaultColor());
+        const urgency = normalizeUrgency(urgencyInput.value, "C");
         const now = Date.now();
 
         const newItem = {
@@ -621,6 +658,7 @@
           name,
           type: "task",
           color,
+          urgency,
           schedule,
           intervalMinutes: schedule === "recurring" ? intervalMinutes : null,
           intervalValue: schedule === "recurring" ? intervalValue : null,
@@ -637,6 +675,7 @@
         scheduleSelect.value = "one-time";
         intervalUnitInput.value = "days";
         colorInput.value = getDefaultColor();
+        urgencyInput.value = "C";
         addColorCustomized = false;
         toggleIntervalVisibility();
         render();
@@ -654,6 +693,7 @@
         const currentItem = items[itemIndex];
         const schedule = editScheduleInput.value;
         const color = normalizeColor(editColorInput.value, getDefaultColor());
+        const urgency = normalizeUrgency(editUrgencyInput.value, "C");
         const intervalValue = Math.max(1, Number(editIntervalValueInput.value) || 1);
         const intervalUnit = UNIT_TO_MINUTES[editIntervalUnitInput.value] ? editIntervalUnitInput.value : "minutes";
         const intervalMinutes = intervalValue * UNIT_TO_MINUTES[intervalUnit];
@@ -661,6 +701,7 @@
           ...currentItem,
           name,
           color,
+          urgency,
           schedule,
           intervalMinutes: schedule === "recurring" ? intervalMinutes : null,
           intervalValue: schedule === "recurring" ? intervalValue : null,
@@ -682,6 +723,8 @@
       cancelEditButton.addEventListener("click", closeEditPanel);
 
       colorInput.value = getDefaultColor();
+      urgencyInput.value = "C";
+      editUrgencyInput.value = "C";
       toggleIntervalVisibility();
       toggleEditIntervalVisibility();
       render();
