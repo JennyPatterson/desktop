@@ -160,6 +160,24 @@
       .sort-control select {
         min-width: 140px;
       }
+      .sync-helper {
+        display: grid;
+        gap: 0.55rem;
+      }
+      .sync-link-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      #sync-link {
+        flex: 1 1 380px;
+        min-width: 0;
+        font-size: 0.82rem;
+      }
+      #sync-copy-status {
+        min-height: 1.1rem;
+      }
       .item-content {
         display: flex;
         align-items: center;
@@ -229,6 +247,13 @@
         .sort-control select {
           min-width: 0;
           width: min(100%, 220px);
+        }
+        .sync-link-row {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        #sync-link {
+          width: 100%;
         }
         li {
           flex-direction: column;
@@ -341,6 +366,18 @@
     </section>
 
     <section>
+      <h2>Sync Across Devices</h2>
+      <div class="sync-helper">
+        <div class="muted">Use one sync link on desktop and mobile to keep a single shared tasks/history view.</div>
+        <div class="sync-link-row">
+          <input id="sync-link" readonly aria-label="Sync link" />
+          <button id="copy-sync-link" type="button" class="secondary">Copy Sync Link</button>
+        </div>
+        <div id="sync-copy-status" class="muted" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section>
       <div class="section-header">
         <h2>Current Tasks</h2>
         <label class="sort-control">
@@ -385,6 +422,9 @@
       const sortModeInput = document.getElementById("sort-mode");
       const tasksList = document.getElementById("tasks-list");
       const historyList = document.getElementById("history-list");
+      const syncLinkInput = document.getElementById("sync-link");
+      const copySyncLinkButton = document.getElementById("copy-sync-link");
+      const syncCopyStatus = document.getElementById("sync-copy-status");
       const UNIT_TO_MINUTES = { minutes: 1, hours: 60, days: 1440, weeks: 10080, years: 525600 };
       const UNIT_LABELS = { minutes: "minute", hours: "hour", days: "day", weeks: "week", years: "year" };
       const URGENCY_VALUES = ["S", "A", "B", "C", "D", "E"];
@@ -479,6 +519,26 @@
         } catch {}
       }
 
+      function hashHasStateParam() {
+        const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : "";
+        if (!hash) return false;
+        const params = new URLSearchParams(hash);
+        return Boolean(params.get(HASH_STATE_PARAM));
+      }
+
+      function getSyncUrl() {
+        return `${window.location.origin}${window.location.pathname}${window.location.search}${window.location.hash}`;
+      }
+
+      function updateSyncLinkDisplay(status = "") {
+        if (syncLinkInput) {
+          syncLinkInput.value = getSyncUrl();
+        }
+        if (syncCopyStatus) {
+          syncCopyStatus.textContent = status;
+        }
+      }
+
       function getStateFromLegacyLocalStorage() {
         try {
           const savedItems = localStorage.getItem(STORAGE_KEY);
@@ -516,6 +576,9 @@
       }
 
       let appState = loadState();
+      if (!hashHasStateParam() && appState.updatedAt > 0) {
+        setStateHash(appState);
+      }
 
       function persistState(nextState) {
         const normalized = normalizeSnapshot(nextState);
@@ -525,6 +588,7 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot.items));
         localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(snapshot.history));
         setStateHash(snapshot);
+        updateSyncLinkDisplay();
       }
 
       function loadItems() {
@@ -931,6 +995,29 @@
       scheduleSelect.addEventListener("change", toggleIntervalVisibility);
       editScheduleInput.addEventListener("change", toggleEditIntervalVisibility);
       cancelEditButton.addEventListener("click", closeEditPanel);
+      copySyncLinkButton?.addEventListener("click", async () => {
+        const link = syncLinkInput?.value || getSyncUrl();
+        try {
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(link);
+          } else {
+            if (!syncLinkInput) throw new Error("missing sync input");
+            syncLinkInput.focus();
+            syncLinkInput.select();
+            const copied = document.execCommand("copy");
+            if (!copied) throw new Error("copy failed");
+          }
+          updateSyncLinkDisplay("Sync link copied. Open it on mobile to use the same saved history.");
+        } catch {
+          updateSyncLinkDisplay("Copy failed. Please copy the sync link manually.");
+        }
+      });
+      window.addEventListener("hashchange", () => {
+        appState = loadState();
+        sortModeInput.value = appState.sortMode;
+        render();
+        updateSyncLinkDisplay();
+      });
       sortModeInput.addEventListener("change", () => {
         persistState({ ...appState, sortMode: sortModeInput.value });
         render();
@@ -940,6 +1027,7 @@
       sortModeInput.value = appState.sortMode;
       urgencyInput.value = "C";
       editUrgencyInput.value = "C";
+      updateSyncLinkDisplay();
       toggleIntervalVisibility();
       toggleEditIntervalVisibility();
       render();
