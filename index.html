@@ -802,6 +802,14 @@
         if (!syncId) throw new Error("Missing sync id.");
         const token = githubTokenInput?.value?.trim() || "";
         if (!token) throw new Error("Save a GitHub token first.");
+        const latest = await readRemoteState(syncId, token);
+        const knownRevision = Math.max(0, Number(expectedRevision) || 0);
+        if (latest.revision !== knownRevision) {
+          const err = new Error("Conflict (revision mismatch)");
+          err.code = "conflict";
+          err.latest = latest;
+          throw err;
+        }
         const nextRevision = Math.max(0, Number(expectedRevision) || 0) + 1;
         const document = buildRemoteDocument(snapshot, nextRevision);
         const content = JSON.stringify(document);
@@ -810,7 +818,6 @@
           `/gists/${encodeURIComponent(syncId)}`,
           {
             method: "PATCH",
-            headers: expectedEtag ? { "If-Match": expectedEtag } : {},
             body: JSON.stringify({
               files: {
                 [GIST_FILENAME]: { content },
@@ -881,7 +888,7 @@
           updateSyncLinkDisplay("Synced to GitHub.");
         } catch (error) {
           if (error?.code === "conflict" && retryOnConflict) {
-            const latest = await readRemoteState(syncId, token);
+            const latest = error?.latest || (await readRemoteState(syncId, token));
             remoteRevision = latest.revision;
             remoteEtag = latest.etag;
             if (latest.snapshot.updatedAt >= appState.updatedAt) {
