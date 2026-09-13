@@ -363,6 +363,8 @@
     <script>
       const STORAGE_KEY = "priorityTaskApp.items.v1";
       const HISTORY_STORAGE_KEY = "priorityTaskApp.history.v1";
+      const STATE_STORAGE_KEY = "priorityTaskApp.state.v2";
+      const HASH_STATE_PARAM = "state";
       const form = document.getElementById("item-form");
       const colorInput = document.getElementById("color");
       const scheduleSelect = document.getElementById("schedule");
@@ -420,35 +422,125 @@
         return { ...base, color, urgency, intervalValue: null, intervalUnit: null, intervalMinutes: null };
       }
 
-      function loadItems() {
+      function normalizeHistoryEntries(history) {
+        if (!Array.isArray(history)) return [];
+        return history
+          .filter((entry) => entry && entry.itemId && entry.name)
+          .map((entry) => ({
+            ...entry,
+            color: normalizeColor(entry.color, getDefaultColor()),
+            urgency: normalizeUrgency(entry.urgency, "C"),
+          }))
+          .slice(0, 200);
+      }
+
+      function inferUpdatedAt(items, history) {
+        const itemTimes = items.flatMap((item) => [Number(item?.createdAt) || 0, Number(item?.completedAt) || 0, Number(item?.nextDueAt) || 0]);
+        const historyTimes = history.map((entry) => Number(entry?.completedAt) || 0);
+        return Math.max(0, ...itemTimes, ...historyTimes);
+      }
+
+      function normalizeSnapshot(snapshot) {
+        const items = Array.isArray(snapshot?.items) ? snapshot.items.filter((item) => item && item.id).map(normalizeItem) : [];
+        const history = normalizeHistoryEntries(snapshot?.history);
+        const sortMode = ["latency", "priority", "frequency"].includes(snapshot?.sortMode) ? snapshot.sortMode : "latency";
+        const updatedAt = Math.max(0, Number(snapshot?.updatedAt) || inferUpdatedAt(items, history));
+        return { items, history, sortMode, updatedAt };
+      }
+
+      function encodeStateForHash(snapshot) {
+        return btoa(encodeURIComponent(JSON.stringify(snapshot)));
+      }
+
+      function decodeStateFromHash(encoded) {
+        return JSON.parse(decodeURIComponent(atob(encoded)));
+      }
+
+      function getStateFromHash() {
         try {
-          const saved = localStorage.getItem(STORAGE_KEY);
-          if (!saved) return [];
-          const parsed = JSON.parse(saved);
-          if (!Array.isArray(parsed)) return [];
-          return parsed.filter((item) => item && item.id).map(normalizeItem);
+          const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : "";
+          if (!hash) return normalizeSnapshot(null);
+          const params = new URLSearchParams(hash);
+          const encoded = params.get(HASH_STATE_PARAM);
+          if (!encoded) return normalizeSnapshot(null);
+          return normalizeSnapshot(decodeStateFromHash(encoded));
         } catch {
-          return [];
+          return normalizeSnapshot(null);
         }
+      }
+
+      function setStateHash(snapshot) {
+        try {
+          const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : "";
+          const params = new URLSearchParams(hash);
+          params.set(HASH_STATE_PARAM, encodeStateForHash(snapshot));
+          const nextHash = params.toString();
+          history.replaceState(null, "", `${window.location.pathname}${window.location.search}${nextHash ? `#${nextHash}` : ""}`);
+        } catch {}
+      }
+
+      function getStateFromLegacyLocalStorage() {
+        try {
+          const savedItems = localStorage.getItem(STORAGE_KEY);
+          const savedHistory = localStorage.getItem(HISTORY_STORAGE_KEY);
+          const items = savedItems ? JSON.parse(savedItems) : [];
+          const history = savedHistory ? JSON.parse(savedHistory) : [];
+          return normalizeSnapshot({ items, history, sortMode: "latency" });
+        } catch {
+          return normalizeSnapshot(null);
+        }
+      }
+
+      function getStateFromLocalStorage() {
+        try {
+          const saved = localStorage.getItem(STATE_STORAGE_KEY);
+          if (!saved) return getStateFromLegacyLocalStorage();
+          return normalizeSnapshot(JSON.parse(saved));
+        } catch {
+          return getStateFromLegacyLocalStorage();
+        }
+      }
+
+      function loadState() {
+        const localState = getStateFromLocalStorage();
+        const hashState = getStateFromHash();
+        const state = hashState.updatedAt > localState.updatedAt ? hashState : localState;
+        if (state === hashState && hashState.updatedAt > localState.updatedAt) {
+          try {
+            localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(hashState));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(hashState.items));
+            localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(hashState.history));
+          } catch {}
+        }
+        return state;
+      }
+
+      let appState = loadState();
+
+      function persistState(nextState) {
+        const normalized = normalizeSnapshot(nextState);
+        const snapshot = { ...normalized, updatedAt: Date.now() };
+        appState = snapshot;
+        localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(snapshot));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot.items));
+        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(snapshot.history));
+        setStateHash(snapshot);
+      }
+
+      function loadItems() {
+        return appState.items.map((item) => ({ ...item }));
       }
 
       function saveItems(items) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+        persistState({ ...appState, items: items.map(normalizeItem) });
       }
 
       function loadHistory() {
-        try {
-          const saved = localStorage.getItem(HISTORY_STORAGE_KEY);
-          if (!saved) return [];
-          const parsed = JSON.parse(saved);
-          return Array.isArray(parsed) ? parsed : [];
-        } catch {
-          return [];
-        }
+        return appState.history.map((entry) => ({ ...entry }));
       }
 
       function saveHistory(history) {
-        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history.slice(0, 200)));
+        persistState({ ...appState, history: normalizeHistoryEntries(history) });
       }
 
       function toggleIntervalVisibility() {
@@ -839,9 +931,13 @@
       scheduleSelect.addEventListener("change", toggleIntervalVisibility);
       editScheduleInput.addEventListener("change", toggleEditIntervalVisibility);
       cancelEditButton.addEventListener("click", closeEditPanel);
-      sortModeInput.addEventListener("change", render);
+      sortModeInput.addEventListener("change", () => {
+        persistState({ ...appState, sortMode: sortModeInput.value });
+        render();
+      });
 
       colorInput.value = getDefaultColor();
+      sortModeInput.value = appState.sortMode;
       urgencyInput.value = "C";
       editUrgencyInput.value = "C";
       toggleIntervalVisibility();
