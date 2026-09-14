@@ -683,6 +683,8 @@
           .filter((entry) => entry && entry.itemId && entry.name)
           .map((entry) => ({
             ...entry,
+            schedule: entry?.schedule === "recurring" ? "recurring" : "one-time",
+            nextDueAt: Number(entry?.nextDueAt) || null,
             color: normalizeColor(entry.color, getDefaultColor()),
             urgency: normalizeUrgency(entry.urgency, "C"),
             category: normalizeCategory(entry.category, null),
@@ -1133,6 +1135,14 @@
         return `due for ${formatDuration(now - dueAt)}`;
       }
 
+      function recurringReturnText(entry, linkedItem, now) {
+        const schedule = entry?.schedule === "recurring" ? "recurring" : linkedItem?.schedule === "recurring" ? "recurring" : "one-time";
+        if (schedule !== "recurring") return null;
+        const dueAt = Math.max(0, Number(entry?.nextDueAt) || Number(linkedItem?.nextDueAt) || 0);
+        if (!dueAt || dueAt <= now) return "back in queue now";
+        return `back in ${formatDuration(dueAt - now)}`;
+      }
+
       function getDueAt(item, now = Date.now()) {
         return Math.max(0, Number(item.nextDueAt) || Number(item.createdAt) || now);
       }
@@ -1349,6 +1359,8 @@
           itemId: item.id,
           name: item.name,
           type: item.type,
+          schedule: item.schedule,
+          nextDueAt: items[itemIndex].nextDueAt,
           color: item.color,
           completedAt: now,
           urgency: item.urgency,
@@ -1473,7 +1485,8 @@
           meta.className = "muted";
           const completedAt = new Date(entry.completedAt).toLocaleString();
           const urgency = normalizeUrgency(entry.urgency, linkedItem?.urgency || "C");
-          meta.textContent = `Urgency ${urgency} • Completed ${completedAt}`;
+          const returnText = recurringReturnText(entry, linkedItem, Date.now());
+          meta.textContent = `Urgency ${urgency} • Completed ${completedAt}${returnText ? ` • ${returnText}` : ""}`;
           const textWrap = document.createElement("div");
           textWrap.appendChild(name);
           textWrap.appendChild(meta);
