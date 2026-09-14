@@ -175,6 +175,13 @@
         justify-content: space-between;
         gap: 0.8rem;
       }
+      .task-controls {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.7rem;
+        flex-wrap: wrap;
+      }
       .sort-control {
         display: flex;
         align-items: center;
@@ -184,6 +191,26 @@
       }
       .sort-control select {
         min-width: 140px;
+      }
+      .category-filter-control {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+      }
+      .category-filter-label {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+      }
+      .category-filter-option {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+      .category-filter-option input {
+        margin: 0;
       }
       .sync-helper {
         display: grid;
@@ -359,6 +386,10 @@
           flex-direction: column;
           align-items: flex-start;
         }
+        .task-controls {
+          width: 100%;
+          justify-content: flex-start;
+        }
         .sort-control {
           width: 100%;
           justify-content: space-between;
@@ -366,6 +397,9 @@
         .sort-control select {
           min-width: 0;
           width: min(100%, 220px);
+        }
+        .category-filter-control {
+          width: 100%;
         }
         .sync-link-row {
           flex-direction: column;
@@ -519,15 +553,33 @@
     <section>
       <div class="section-header">
         <h2>Current Tasks</h2>
-        <label class="sort-control">
-          Sort by
-          <select id="sort-mode" name="sort-mode">
-            <option value="latency" selected>Latency</option>
-            <option value="priority">Priority</option>
-            <option value="frequency">Frequency</option>
-            <option value="category">Category</option>
-          </select>
-        </label>
+        <div class="task-controls">
+          <label class="sort-control">
+            Sort by
+            <select id="sort-mode" name="sort-mode">
+              <option value="latency" selected>Latency</option>
+              <option value="priority">Priority</option>
+              <option value="frequency">Frequency</option>
+              <option value="category">Category</option>
+            </select>
+          </label>
+          <div class="category-filter-control" role="group" aria-label="Category filter">
+            <span class="category-filter-label">Show categories</span>
+            <label class="category-filter-option"><input type="checkbox" name="category-filter" value="Health" checked />Health</label>
+            <label class="category-filter-option"
+              ><input type="checkbox" name="category-filter" value="Financial" checked />Financial</label
+            >
+            <label class="category-filter-option"><input type="checkbox" name="category-filter" value="Chore" checked />Chore</label>
+            <label class="category-filter-option"><input type="checkbox" name="category-filter" value="Hobby" checked />Hobby</label>
+            <label class="category-filter-option"><input type="checkbox" name="category-filter" value="Work" checked />Work</label>
+            <label class="category-filter-option"
+              ><input type="checkbox" name="category-filter" value="Community" checked />Community</label
+            >
+            <label class="category-filter-option"
+              ><input type="checkbox" name="category-filter" value="__uncategorized__" checked />None</label
+            >
+          </div>
+        </div>
       </div>
       <ul id="tasks-list"></ul>
       <div id="tasks-pagination" class="pagination" hidden></div>
@@ -603,6 +655,7 @@
       const editCategoryInput = document.getElementById("edit-category");
       const cancelEditButton = document.getElementById("cancel-edit");
       const sortModeInput = document.getElementById("sort-mode");
+      const categoryFilterInputs = Array.from(document.querySelectorAll('input[name="category-filter"]'));
       const tasksList = document.getElementById("tasks-list");
       const historyList = document.getElementById("history-list");
       const tasksPagination = document.getElementById("tasks-pagination");
@@ -621,6 +674,8 @@
       const MONTHLY_INTERVAL_MINUTES = 43200;
       const URGENCY_VALUES = ["S", "A", "B", "C", "D", "E"];
       const CATEGORY_VALUES = ["Health", "Financial", "Chore", "Hobby", "Work", "Community"];
+      const UNCATEGORIZED_FILTER_VALUE = "__uncategorized__";
+      const DEFAULT_CATEGORY_FILTERS = [...CATEGORY_VALUES, UNCATEGORIZED_FILTER_VALUE];
       const CATEGORY_ICON_SVGS = {
         Health:
           '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-6.8-4.7-8.8-8.1C1.5 8.8 3.1 5.5 6.4 5.5c2 0 3.2 1 4.1 2.4.9-1.4 2.1-2.4 4.1-2.4 3.3 0 4.9 3.3 3.2 6.4C18.8 15.3 12 20 12 20z"></path></svg>',
@@ -669,6 +724,30 @@
         return CATEGORY_VALUES.includes(normalized) ? normalized : fallback;
       }
 
+      function normalizeCategoryFilters(value) {
+        if (!Array.isArray(value)) return [...DEFAULT_CATEGORY_FILTERS];
+        const normalized = value.filter((entry) => DEFAULT_CATEGORY_FILTERS.includes(entry));
+        return [...new Set(normalized)];
+      }
+
+      function getSelectedCategoryFilters() {
+        if (!categoryFilterInputs.length) return [...DEFAULT_CATEGORY_FILTERS];
+        return categoryFilterInputs.filter((input) => input.checked).map((input) => input.value);
+      }
+
+      function setSelectedCategoryFilters(values) {
+        const selected = new Set(normalizeCategoryFilters(values));
+        for (const input of categoryFilterInputs) {
+          input.checked = selected.has(input.value);
+        }
+      }
+
+      function isVisibleCategory(item, selectedFilters) {
+        const category = normalizeCategory(item?.category, null);
+        if (!category) return selectedFilters.includes(UNCATEGORIZED_FILTER_VALUE);
+        return selectedFilters.includes(category);
+      }
+
       function normalizeItem(item) {
         const normalizedSchedule = item?.schedule === "recurring" ? "recurring" : "one-time";
         const base = { ...item, type: "task", schedule: normalizedSchedule };
@@ -708,9 +787,10 @@
         const items = Array.isArray(snapshot?.items) ? snapshot.items.filter((item) => item && item.id).map(normalizeItem) : [];
         const history = normalizeHistoryEntries(snapshot?.history);
         const sortMode = ["latency", "priority", "frequency", "category"].includes(snapshot?.sortMode) ? snapshot.sortMode : "latency";
+        const categoryFilters = normalizeCategoryFilters(snapshot?.categoryFilters);
         const experiencePoints = Math.max(0, Math.floor(Number(snapshot?.experiencePoints) || 0));
         const updatedAt = Math.max(0, Number(snapshot?.updatedAt) || inferUpdatedAt(items, history));
-        return { items, history, sortMode, experiencePoints, updatedAt };
+        return { items, history, sortMode, categoryFilters, experiencePoints, updatedAt };
       }
 
       function encodeStateForHash(snapshot) {
@@ -1017,6 +1097,7 @@
           if (remote.snapshot.updatedAt >= appState.updatedAt) {
             persistState(remote.snapshot, { preserveUpdatedAt: true, skipRemote: true });
             sortModeInput.value = appState.sortMode;
+            setSelectedCategoryFilters(appState.categoryFilters);
             render();
             updateSyncLinkDisplay("Synced from GitHub.");
             return;
@@ -1065,6 +1146,7 @@
             if (latest.snapshot.updatedAt >= appState.updatedAt) {
               persistState(latest.snapshot, { preserveUpdatedAt: true, skipRemote: true });
               sortModeInput.value = appState.sortMode;
+              setSelectedCategoryFilters(appState.categoryFilters);
               render();
               updateSyncLinkDisplay("Conflict resolved using latest remote state.");
             } else {
@@ -1236,7 +1318,8 @@
       function render() {
         const now = Date.now();
         const items = loadItems();
-        const visibleTasks = items.filter((i) => isVisibleNow(i, now));
+        const selectedCategoryFilters = getSelectedCategoryFilters();
+        const visibleTasks = items.filter((i) => isVisibleNow(i, now) && isVisibleCategory(i, selectedCategoryFilters));
         const sortedTasks = sortTasks(visibleTasks, now, sortModeInput?.value || "latency");
         tasksPage = clampPage(tasksPage, sortedTasks.length);
         if (experiencePointsDisplay) {
@@ -1695,6 +1778,7 @@
       window.addEventListener("hashchange", () => {
         appState = loadState();
         sortModeInput.value = appState.sortMode;
+        setSelectedCategoryFilters(appState.categoryFilters);
         render();
         updateSyncLinkDisplay();
       });
@@ -1702,9 +1786,17 @@
         persistState({ ...appState, sortMode: sortModeInput.value });
         render();
       });
+      for (const input of categoryFilterInputs) {
+        input.addEventListener("change", () => {
+          const categoryFilters = normalizeCategoryFilters(getSelectedCategoryFilters());
+          persistState({ ...appState, categoryFilters });
+          render();
+        });
+      }
 
       colorInput.value = getDefaultColor();
       sortModeInput.value = appState.sortMode;
+      setSelectedCategoryFilters(appState.categoryFilters);
       urgencyInput.value = "C";
       editUrgencyInput.value = "C";
       categoryInput.value = "";
