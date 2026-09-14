@@ -567,7 +567,7 @@
             aria-controls="add-task-content"
             aria-expanded="true"
           >
-            Collapse
+            ^
           </button>
         </div>
         <div id="add-task-content" class="collapsible-content">
@@ -737,7 +737,7 @@
             aria-controls="current-tasks-content"
             aria-expanded="true"
           >
-            Collapse
+            ^
           </button>
         </div>
       </div>
@@ -757,7 +757,7 @@
           aria-controls="completion-history-content"
           aria-expanded="true"
         >
-          Collapse
+          ^
         </button>
       </div>
       <div id="completion-history-content" class="collapsible-content">
@@ -776,7 +776,7 @@
           aria-controls="stats-content"
           aria-expanded="true"
         >
-          Collapse
+          ^
         </button>
       </div>
       <div id="stats-content" class="collapsible-content">
@@ -797,7 +797,7 @@
           aria-controls="sync-content"
           aria-expanded="true"
         >
-          Collapse
+          ^
         </button>
       </div>
       <div id="sync-content" class="collapsible-content">
@@ -1004,7 +1004,7 @@
         if (!content) return;
         content.hidden = collapsed;
         toggleButton.setAttribute("aria-expanded", String(!collapsed));
-        toggleButton.textContent = collapsed ? "Expand" : "Collapse";
+        toggleButton.textContent = collapsed ? "v" : "^";
       }
 
       function initCollapsibleSections() {
