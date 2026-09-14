@@ -236,6 +236,17 @@
         padding: 0.3rem 0.55rem;
         font-size: 0.82rem;
       }
+      .pagination {
+        margin: 0.35rem 0 0.55rem;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .pagination button {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+      }
       .urgency-grade {
         display: inline-flex;
         align-items: center;
@@ -346,6 +357,9 @@
           width: 100%;
           justify-content: flex-end;
           flex-wrap: wrap;
+        }
+        .pagination {
+          justify-content: space-between;
         }
       }
     </style>
@@ -466,11 +480,13 @@
         </label>
       </div>
       <ul id="tasks-list"></ul>
+      <div id="tasks-pagination" class="pagination" hidden></div>
     </section>
 
     <section>
       <h2>Completion History</h2>
       <ul id="history-list"></ul>
+      <div id="history-pagination" class="pagination" hidden></div>
     </section>
 
     <section>
@@ -515,6 +531,7 @@
       const GITHUB_API_BASE = "https://api.github.com";
       const REMOTE_SYNC_DEBOUNCE_MS = 700;
       const MAX_REMOTE_PAYLOAD_BYTES = 200000;
+      const ENTRIES_PER_PAGE = 10;
       const form = document.getElementById("item-form");
       const colorInput = document.getElementById("color");
       const scheduleSelect = document.getElementById("schedule");
@@ -536,6 +553,8 @@
       const sortModeInput = document.getElementById("sort-mode");
       const tasksList = document.getElementById("tasks-list");
       const historyList = document.getElementById("history-list");
+      const tasksPagination = document.getElementById("tasks-pagination");
+      const historyPagination = document.getElementById("history-pagination");
       const githubTokenInput = document.getElementById("github-token");
       const saveGithubTokenButton = document.getElementById("save-github-token");
       const createSharedSyncButton = document.getElementById("create-shared-sync");
@@ -557,6 +576,8 @@
       let remoteSyncTimer = null;
       let pendingRemoteWrite = false;
       let remoteSyncInFlight = false;
+      let tasksPage = 1;
+      let historyPage = 1;
 
       function getDefaultColor() {
         return "#38d9ff";
@@ -597,8 +618,7 @@
             ...entry,
             color: normalizeColor(entry.color, getDefaultColor()),
             urgency: normalizeUrgency(entry.urgency, "C"),
-          }))
-          .slice(0, 200);
+          }));
       }
 
       function inferUpdatedAt(items, history) {
@@ -1085,11 +1105,61 @@
         const items = loadItems();
         const visibleTasks = items.filter((i) => isVisibleNow(i, now));
         const sortedTasks = sortTasks(visibleTasks, now, sortModeInput?.value || "latency");
+        tasksPage = clampPage(tasksPage, sortedTasks.length);
         if (experiencePointsDisplay) {
           experiencePointsDisplay.textContent = `${Math.max(0, Number(appState.experiencePoints) || 0)} XP`;
         }
-        renderList(tasksList, sortedTasks, now);
+        renderList(tasksList, getPageEntries(sortedTasks, tasksPage), now);
+        renderPagination(tasksPagination, sortedTasks.length, tasksPage, (nextPage) => {
+          tasksPage = nextPage;
+          render();
+        });
         renderHistory();
+      }
+
+      function getTotalPages(totalCount) {
+        return Math.max(1, Math.ceil(Math.max(0, Number(totalCount) || 0) / ENTRIES_PER_PAGE));
+      }
+
+      function clampPage(page, totalCount) {
+        return Math.min(getTotalPages(totalCount), Math.max(1, Number(page) || 1));
+      }
+
+      function getPageEntries(entries, page) {
+        const start = (clampPage(page, entries.length) - 1) * ENTRIES_PER_PAGE;
+        return entries.slice(start, start + ENTRIES_PER_PAGE);
+      }
+
+      function renderPagination(container, totalCount, currentPage, onPageChange) {
+        container.innerHTML = "";
+        if (totalCount <= ENTRIES_PER_PAGE) {
+          container.hidden = true;
+          return;
+        }
+        const totalPages = getTotalPages(totalCount);
+        container.hidden = false;
+
+        const previousButton = document.createElement("button");
+        previousButton.type = "button";
+        previousButton.className = "secondary";
+        previousButton.textContent = "Previous";
+        previousButton.disabled = currentPage <= 1;
+        previousButton.addEventListener("click", () => onPageChange(currentPage - 1));
+
+        const pageLabel = document.createElement("span");
+        pageLabel.className = "muted";
+        pageLabel.textContent = `Page ${currentPage} of ${totalPages}`;
+
+        const nextButton = document.createElement("button");
+        nextButton.type = "button";
+        nextButton.className = "secondary";
+        nextButton.textContent = "Next";
+        nextButton.disabled = currentPage >= totalPages;
+        nextButton.addEventListener("click", () => onPageChange(currentPage + 1));
+
+        container.appendChild(previousButton);
+        container.appendChild(pageLabel);
+        container.appendChild(nextButton);
       }
 
       function renderList(listEl, items, now = Date.now()) {
@@ -1277,12 +1347,17 @@
       function renderHistory() {
         historyList.innerHTML = "";
         const itemsById = new Map(loadItems().map((item) => [item.id, item]));
-        const recent = loadHistory()
+        const completedEntries = loadHistory()
           .filter((entry) => entry && entry.name && entry.completedAt)
-          .sort((a, b) => b.completedAt - a.completedAt)
-          .slice(0, 20);
+          .sort((a, b) => b.completedAt - a.completedAt);
+        historyPage = clampPage(historyPage, completedEntries.length);
+        const visibleEntries = getPageEntries(completedEntries, historyPage);
+        renderPagination(historyPagination, completedEntries.length, historyPage, (nextPage) => {
+          historyPage = nextPage;
+          renderHistory();
+        });
 
-        if (!recent.length) {
+        if (!visibleEntries.length) {
           const empty = document.createElement("li");
           empty.className = "muted";
           empty.textContent = "No completed items yet.";
@@ -1290,7 +1365,7 @@
           return;
         }
 
-        for (const entry of recent) {
+        for (const entry of visibleEntries) {
           const li = document.createElement("li");
           const left = document.createElement("div");
           left.className = "item-content";
