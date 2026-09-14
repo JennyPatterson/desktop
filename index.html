@@ -380,15 +380,15 @@
         height: 1.8rem;
         padding: 0 0.3rem;
         border-radius: 8px;
-        border: 1px solid #89b8ff;
-        background: linear-gradient(145deg, #1a2a47, #152136);
-        color: #e8f1ff;
+        border: 1px solid #f8f4ffaa;
+        background: linear-gradient(145deg, #ffe48c, #f08bd6 55%, #7ac7ff);
+        color: #12071f;
         font-weight: 900;
-        font-size: 1.05rem;
+        font-size: 1.2rem;
         line-height: 1;
         letter-spacing: 0.02em;
-        text-shadow: 0 0 8px #6eb5ff66;
-        box-shadow: 0 0 12px #5ea8ff30, inset 0 0 10px #62c6ff22;
+        text-shadow: 0 1px 0 #ffffff8a, 0 0 6px #ffffffa0;
+        box-shadow: 0 0 10px #f4b9ff8a, inset 0 0 6px #ffffffa8;
       }
       #experience-points {
         text-align: right;
@@ -396,7 +396,7 @@
         font-size: clamp(1.7rem, 3vw, 2.1rem);
         margin: 0.05rem 0 0;
         letter-spacing: 0.03em;
-        text-shadow: 0 0 14px #6ca8ff66;
+        text-shadow: 0 0 18px #7ba7ff72;
       }
       .top-sections {
         display: grid;
@@ -756,6 +756,7 @@
                 Name
                 <input id="name" name="name" required maxlength="200" placeholder="e.g. Plant Wildflowers" />
               </label>
+            </label>
             </div>
             <div class="add-row add-row-recurrence">
               <label class="input-only task-schedule-field">
@@ -765,44 +766,41 @@
                 </select>
               </label>
               <label id="interval-label" class="task-interval-field" style="display: none">
-                <div class="row">
-                  <span>every</span>
-                  <input id="interval-value" name="interval-value" type="number" min="0.1" step="0.1" value="1" inputmode="decimal" />
-                  <select id="interval-unit" name="interval-unit">
-                    <option value="hours">hours</option>
-                    <option value="days" selected>days</option>
-                    <option value="weeks">weeks</option>
-                    <option value="months">months</option>
-                    <option value="years">years</option>
-                  </select>
-                </div>
-              </label>
-            </div>
-            <div class="add-row add-row-meta">
+              Recur every
+              <div class="row">
+                <input id="interval-value" name="interval-value" type="number" min="0.1" step="0.1" value="1" inputmode="decimal" />
+                <select id="interval-unit" name="interval-unit">
+                  <option value="hours">hours</option>
+                  <option value="days" selected>days</option>
+                  <option value="weeks">weeks</option>
+                  <option value="months">months</option>
+                  <option value="years">years</option>
+                </select>
+              </div>
+            </label>
               <label class="task-urgency-field">
                 Urgency
                 <select id="urgency" name="urgency">
-                  <option value="S">S (Highest)</option>
-                  <option value="A">A</option>
-                  <option value="B">B</option>
-                  <option value="C" selected>C</option>
-                  <option value="D">D</option>
-                  <option value="E">E (Lowest)</option>
-                </select>
-              </label>
+                <option value="S">S (Highest)</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C" selected>C</option>
+                <option value="D">D</option>
+                <option value="E">E (Lowest)</option>
+              </select>
+            </label>
               <label class="task-category-field">
                 Category
-                <select id="category" name="category">
-                  <option value="" selected>None</option>
-                  <option value="Health">Health</option>
-                  <option value="Financial">Financial</option>
-                  <option value="Chore">Chore</option>
-                  <option value="Hobby">Hobby</option>
-                  <option value="Work">Work</option>
-                  <option value="Community">Community</option>
-                </select>
-              </label>
-            </div>
+              <select id="category" name="category">
+                <option value="" selected>None</option>
+                <option value="Health">Health</option>
+                <option value="Financial">Financial</option>
+                <option value="Chore">Chore</option>
+                <option value="Hobby">Hobby</option>
+                <option value="Work">Work</option>
+                <option value="Community">Community</option>
+              </select>
+            </label>
             <div class="form-submit-row task-submit-row">
               <button type="submit">Create</button>
             </div>
@@ -818,6 +816,142 @@
     <section id="edit-panel" hidden>
       <h2>Edit Item</h2>
       <form id="edit-form">
+        <label>
+          Name
+          <input id="edit-name" name="edit-name" required maxlength="200" />
+        </label>
+        <label class="input-only">
+          <select id="edit-schedule" name="edit-schedule" aria-label="Schedule">
+            <option value="one-time">One-time</option>
+            <option value="recurring">Recurring</option>
+          </select>
+        </label>
+        <label id="edit-interval-label" style="display: none">
+          Recur every
+          <div class="row">
+            <input id="edit-interval-value" name="edit-interval-value" type="number" min="0.1" step="0.1" value="1" inputmode="decimal" />
+            <select id="edit-interval-unit" name="edit-interval-unit">
+              <option value="hours">hours</option>
+              <option value="days">days</option>
+              <option value="weeks">weeks</option>
+              <option value="months">months</option>
+              <option value="years">years</option>
+            </select>
+          </div>
+        </label>
+        <label class="input-only">
+          <input id="edit-color" name="edit-color" type="color" value="#4cc9f0" aria-label="Colour" />
+        </label>
+        <label>
+          Urgency
+          <select id="edit-urgency" name="edit-urgency">
+            <option value="S">S (Highest)</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+            <option value="E">E (Lowest)</option>
+          </select>
+        </label>
+        <label>
+          Category
+          <select id="edit-category" name="edit-category">
+            <option value="">None</option>
+            <option value="Health">Health</option>
+            <option value="Financial">Financial</option>
+            <option value="Chore">Chore</option>
+            <option value="Hobby">Hobby</option>
+            <option value="Work">Work</option>
+            <option value="Community">Community</option>
+          </select>
+        </label>
+        <div class="actions">
+          <button type="submit">Save changes</button>
+          <button id="cancel-edit" type="button" class="secondary">Cancel</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="current-tasks-section">
+      <div class="section-header">
+        <h2>Current Tasks</h2>
+        <div class="task-controls">
+          <div class="context-menu">
+            <button id="context-menu-toggle" type="button" class="secondary context-menu-button" aria-expanded="false">
+              Context
+            </button>
+            <div id="context-menu-panel" class="context-menu-panel" hidden>
+              <div class="category-filter-control" role="group" aria-label="Category filter">
+                <span class="category-filter-label">Show categories</span>
+                <label class="category-filter-option"><input type="checkbox" name="category-filter" value="Health" checked />Health</label>
+                <label class="category-filter-option"
+                  ><input type="checkbox" name="category-filter" value="Financial" checked />Financial</label
+                >
+                <label class="category-filter-option"
+                  ><input type="checkbox" name="category-filter" value="Chore" checked />Chore</label
+                >
+                <label class="category-filter-option"><input type="checkbox" name="category-filter" value="Hobby" checked />Hobby</label>
+                <label class="category-filter-option"><input type="checkbox" name="category-filter" value="Work" checked />Work</label>
+                <label class="category-filter-option"
+                  ><input type="checkbox" name="category-filter" value="Community" checked />Community</label
+                >
+                <label class="category-filter-option"
+                  ><input type="checkbox" name="category-filter" value="__uncategorized__" checked />None</label
+                >
+              </div>
+            </div>
+          </div>
+          <label class="sort-control">
+            Sort by
+            <select id="sort-mode" name="sort-mode">
+              <option value="latency" selected>Latency</option>
+              <option value="priority">Priority</option>
+              <option value="frequency">Frequency</option>
+              <option value="category">Category</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            class="secondary collapse-toggle"
+            data-target="current-tasks-content"
+            aria-controls="current-tasks-content"
+            aria-expanded="true"
+          >
+            ^
+          </button>
+                <div class="row">
+                  <span>every</span>
+                  <input id="interval-value" name="interval-value" type="number" min="0.1" step="0.1" value="1" inputmode="decimal" />
+                  <select id="interval-unit" name="interval-unit">
+                    <option value="hours">hours</option>
+                    <option value="days" selected>days</option>
+                    <option value="weeks">weeks</option>
+                    <option value="months">months</option>
+                    <option value="years">years</option>
+                  </select>
+                </div>
+              </label>
+            </div>
+            <div class="add-row add-row-meta">
+                  <option value="S">S (Highest)</option>
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C" selected>C</option>
+                  <option value="D">D</option>
+                  <option value="E">E (Lowest)</option>
+                </select>
+              </label>
+                <select id="category" name="category">
+                  <option value="" selected>None</option>
+                  <option value="Health">Health</option>
+                  <option value="Financial">Financial</option>
+                  <option value="Chore">Chore</option>
+                  <option value="Hobby">Hobby</option>
+                  <option value="Work">Work</option>
+                  <option value="Community">Community</option>
+                </select>
+              </label>
+            </div>
         <div class="edit-row edit-row-name">
           <label class="edit-name-field">
             Name
@@ -875,14 +1009,6 @@
         </div>
         <div class="actions edit-actions-row">
           <button type="submit">Update</button>
-          <button id="cancel-edit" type="button" class="secondary">Cancel</button>
-        </div>
-      </form>
-    </section>
-
-    <section id="current-tasks-section">
-      <div class="section-header">
-        <h2>Current Tasks</h2>
         <button
           type="button"
           class="secondary collapse-toggle"
@@ -894,41 +1020,7 @@
         </button>
       </div>
       <div id="current-tasks-content" class="collapsible-content">
-        <div class="task-controls">
-          <div class="context-menu">
-            <button id="context-menu-toggle" type="button" class="secondary context-menu-button" aria-expanded="false">
-              Context
-            </button>
-            <div id="context-menu-panel" class="context-menu-panel" hidden>
-              <div class="category-filter-control" role="group" aria-label="Category filter">
-                <span class="category-filter-label">Show categories</span>
-                <label class="category-filter-option"><input type="checkbox" name="category-filter" value="Health" checked />Health</label>
-                <label class="category-filter-option"
-                  ><input type="checkbox" name="category-filter" value="Financial" checked />Financial</label
-                >
-                <label class="category-filter-option"
-                  ><input type="checkbox" name="category-filter" value="Chore" checked />Chore</label
-                >
-                <label class="category-filter-option"><input type="checkbox" name="category-filter" value="Hobby" checked />Hobby</label>
-                <label class="category-filter-option"><input type="checkbox" name="category-filter" value="Work" checked />Work</label>
-                <label class="category-filter-option"
-                  ><input type="checkbox" name="category-filter" value="Community" checked />Community</label
-                >
-                <label class="category-filter-option"
-                  ><input type="checkbox" name="category-filter" value="__uncategorized__" checked />None</label
-                >
-              </div>
-            </div>
-          </div>
-          <label class="sort-control">
-            Sort by
-            <select id="sort-mode" name="sort-mode">
-              <option value="latency" selected>Latency</option>
-              <option value="priority">Priority</option>
-              <option value="frequency">Frequency</option>
-              <option value="category">Category</option>
-            </select>
-          </label>
+        </div>
         </div>
         <ul id="tasks-list"></ul>
         <div id="tasks-pagination" class="pagination" hidden></div>
