@@ -99,8 +99,11 @@
         outline-offset: 1px;
       }
       input[type="color"] {
-        min-height: 2.2rem;
-        padding: 0.2rem;
+        width: 2.35rem;
+        height: 2.35rem;
+        min-height: 2.35rem;
+        padding: 0.15rem;
+        border-radius: 8px;
       }
       button {
         cursor: pointer;
@@ -177,7 +180,7 @@
         background: var(--card-bg);
         border: 1px solid var(--card-border);
         border-radius: 16px;
-        box-shadow: 0 16px 38px #01050f8c;
+        box-shadow: 0 16px 38px #01050f8c, -1px 0 0 #ff5bb433, 1px 0 0 #56d6ff33;
         backdrop-filter: blur(8px);
       }
       h2 {
@@ -194,7 +197,23 @@
       }
       .collapse-toggle {
         flex: 0 0 auto;
-        min-width: 5.4rem;
+        min-width: 0;
+        width: 2.2rem;
+        height: 2.2rem;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border-color: #6f80b7;
+        box-shadow: none;
+      }
+      .collapse-toggle.secondary {
+        background: transparent;
+      }
+      .collapse-toggle:hover {
+        background: #dbe6ff14;
+        box-shadow: none;
       }
       .collapsible-content[hidden] {
         display: none;
@@ -479,6 +498,12 @@
       }
       .form-submit-row {
         grid-column: 1 / -1;
+        display: flex;
+        justify-content: flex-end;
+      }
+      .form-submit-row button {
+        background: linear-gradient(155deg, #8e5dff, #6f41e7);
+        border-color: #b097ff;
       }
       @media (max-width: 700px) {
         h1 {
@@ -565,7 +590,7 @@
             class="secondary collapse-toggle"
             data-target="add-task-content"
             aria-controls="add-task-content"
-            aria-expanded="true"
+            aria-expanded="false"
           >
             ^
           </button>
@@ -755,7 +780,7 @@
           class="secondary collapse-toggle"
           data-target="completion-history-content"
           aria-controls="completion-history-content"
-          aria-expanded="true"
+          aria-expanded="false"
         >
           ^
         </button>
@@ -774,7 +799,7 @@
           class="secondary collapse-toggle"
           data-target="stats-content"
           aria-controls="stats-content"
-          aria-expanded="true"
+          aria-expanded="false"
         >
           ^
         </button>
@@ -795,7 +820,7 @@
           class="secondary collapse-toggle"
           data-target="sync-content"
           aria-controls="sync-content"
-          aria-expanded="true"
+          aria-expanded="false"
         >
           ^
         </button>
