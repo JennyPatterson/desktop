@@ -57,6 +57,7 @@ export class TaskStateStore {
     try {
       return localStorage.getItem(CONFIG.GITHUB_TOKEN_STORAGE_KEY) || "";
     } catch {
+      console.warn("Unable to read saved GitHub token from localStorage.");
       return "";
     }
   }
@@ -65,9 +66,13 @@ export class TaskStateStore {
     try {
       if (!token) {
         localStorage.removeItem(CONFIG.GITHUB_TOKEN_STORAGE_KEY);
-        return;
+        return true;
       }
       localStorage.setItem(CONFIG.GITHUB_TOKEN_STORAGE_KEY, token);
-    } catch {}
+      return true;
+    } catch {
+      console.warn("Unable to save GitHub token to localStorage.");
+      return false;
+    }
   }
 }

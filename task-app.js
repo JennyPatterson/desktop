@@ -238,7 +238,17 @@ export class TaskboardApp {
     for (const button of this.dom.collapseToggleButtons) {
       const expanded = button.getAttribute("aria-expanded") !== "false";
       this.setSectionCollapsed(button, !expanded);
-      button.addEventListener("click", () => {
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const isExpanded = button.getAttribute("aria-expanded") === "true";
+        this.setSectionCollapsed(button, isExpanded);
+      });
+      const header = button.closest(".section-header");
+      if (!header) continue;
+      header.addEventListener("click", (event) => {
+        if (event.target instanceof Element && event.target.closest("button, a, input, select, textarea, label")) {
+          return;
+        }
         const isExpanded = button.getAttribute("aria-expanded") === "true";
         this.setSectionCollapsed(button, isExpanded);
       });
@@ -256,10 +266,8 @@ export class TaskboardApp {
   }
 
   resizeScheduleSelect(selectInput) {
-    const selectedOption = selectInput?.options?.[selectInput.selectedIndex];
-    const text = (selectedOption?.textContent || "").trim();
-    const widthCh = Math.ceil(Math.max(8, text.length + 2) * 1.3);
-    selectInput.style.width = `${widthCh}ch`;
+    if (!selectInput) return;
+    selectInput.style.width = "100%";
   }
 
   setContextMenuOpen(isOpen) {
@@ -437,8 +445,16 @@ export class TaskboardApp {
 
   onSaveToken() {
     const token = this.dom.githubTokenInput?.value?.trim() || "";
-    this.store.saveGithubToken(token);
-    this.updateSyncLinkDisplay(token ? "Token saved on this device." : "Token cleared on this device.");
+    const didSave = this.store.saveGithubToken(token);
+    if (!token) {
+      this.updateSyncLinkDisplay("Token cleared on this device.");
+      return;
+    }
+    if (!didSave) {
+      this.updateSyncLinkDisplay("Unable to save token on this device. Keep this tab open and sync without refreshing.");
+      return;
+    }
+    this.updateSyncLinkDisplay("Token saved on this device.");
   }
 
   async onCreateSharedSync() {
