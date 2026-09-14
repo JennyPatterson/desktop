@@ -98,7 +98,7 @@ export class TaskRenderer {
       name.textContent = item.name;
       const meta = document.createElement("div");
       meta.className = "muted";
-      meta.textContent = `urgency ${item.urgency} • ${TaskModel.recurrenceText(item)} • ${TaskModel.dueDurationText(item, now)}`;
+      meta.textContent = TaskModel.recurrenceText(item) + " • " + TaskModel.dueDurationText(item, now);
       const actions = document.createElement("div");
       actions.className = "actions";
       const urgencyGrade = this.createUrgencyGrade(item.urgency);
