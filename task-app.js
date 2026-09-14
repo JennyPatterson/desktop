@@ -437,8 +437,16 @@ export class TaskboardApp {
 
   onSaveToken() {
     const token = this.dom.githubTokenInput?.value?.trim() || "";
-    this.store.saveGithubToken(token);
-    this.updateSyncLinkDisplay(token ? "Token saved on this device." : "Token cleared on this device.");
+    const didSave = this.store.saveGithubToken(token);
+    if (!token) {
+      this.updateSyncLinkDisplay("Token cleared on this device.");
+      return;
+    }
+    if (!didSave) {
+      this.updateSyncLinkDisplay("Unable to save token on this device. Keep this tab open and sync without refreshing.");
+      return;
+    }
+    this.updateSyncLinkDisplay("Token saved on this device.");
   }
 
   async onCreateSharedSync() {
