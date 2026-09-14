@@ -3,7 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Priorities + Tasks</title>
+    <title>Taskboard</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='50' font-size='50'%3E%F0%9F%8C%88%3C/text%3E%3C/svg%3E"
+    />
     <style>
       :root {
         color-scheme: dark;
@@ -383,14 +387,14 @@
     </style>
   </head>
   <body>
-    <h1>Tasks</h1>
+    <h1>We Do What We Must Because We Can</h1>
     <div class="top-sections">
       <section id="add-task-section">
         <h2>Add A Task</h2>
         <form id="item-form">
           <label>
             Name
-            <input id="name" name="name" required maxlength="200" placeholder="e.g. Plan sprint" />
+            <input id="name" name="name" required maxlength="200" placeholder="e.g. Plant Wildflowers" />
           </label>
           <label>
             Schedule
@@ -1118,7 +1122,7 @@
       }
 
       function formatDuration(ms) {
-        const totalMinutes = Math.floor(Math.max(0, ms) / 60000);
+        const totalMinutes = Math.round(Math.max(0, ms) / 60000);
         if (totalMinutes < 1) return "under a minute";
         const days = Math.floor(totalMinutes / 1440);
         const hours = Math.floor((totalMinutes % 1440) / 60);
@@ -1130,12 +1134,12 @@
         return parts.slice(0, 2).join(" ");
       }
 
-      function roundToNearestSecond(timestamp) {
-        return Math.round(Number(timestamp) / 1000) * 1000;
+      function roundToNearestMinute(timestamp) {
+        return Math.round(Number(timestamp) / 60000) * 60000;
       }
 
       function formatDisplayDateTime(timestamp, now = Date.now()) {
-        const roundedTimestamp = roundToNearestSecond(timestamp);
+        const roundedTimestamp = roundToNearestMinute(timestamp);
         if (!Number.isFinite(roundedTimestamp)) return "";
         const date = new Date(roundedTimestamp);
         const nowDate = new Date(now);
@@ -1146,7 +1150,7 @@
         const dayDiff = Math.round((dateStart.getTime() - nowStart.getTime()) / 86400000);
         const dateLabel =
           dayDiff === 0 ? "Today" : dayDiff === 1 ? "Tomorrow" : date.toLocaleDateString();
-        const timeLabel = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" });
+        const timeLabel = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
         return `${dateLabel} ${timeLabel}`;
       }
 
