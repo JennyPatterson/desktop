@@ -175,6 +175,13 @@
         justify-content: space-between;
         gap: 0.8rem;
       }
+      .collapse-toggle {
+        flex: 0 0 auto;
+        min-width: 5.4rem;
+      }
+      .collapsible-content[hidden] {
+        display: none;
+      }
       .task-controls {
         display: flex;
         align-items: center;
@@ -362,6 +369,39 @@
         flex-direction: column;
         align-items: flex-end;
       }
+      .stats-graph-wrap {
+        overflow-x: auto;
+      }
+      #stats-graph {
+        width: 100%;
+        min-height: 220px;
+        display: block;
+      }
+      .stats-axis,
+      .stats-grid {
+        stroke: #8f86b9;
+        stroke-width: 1;
+      }
+      .stats-grid {
+        opacity: 0.35;
+      }
+      .stats-line {
+        fill: none;
+        stroke: #4cc9f0;
+        stroke-width: 2.5;
+        stroke-linejoin: round;
+        stroke-linecap: round;
+      }
+      .stats-point {
+        fill: #4cc9f0;
+      }
+      .stats-label {
+        fill: var(--text-muted);
+        font-size: 12px;
+      }
+      #stats-summary {
+        margin: 0.3rem 0 0.45rem;
+      }
       @keyframes sparkle-burst {
         0% {
           opacity: 0;
@@ -470,61 +510,74 @@
     <h1>We Do What We Must Because We Can</h1>
     <div class="top-sections">
       <section id="add-task-section">
-        <h2>Add A Task</h2>
-        <form id="item-form">
-          <label>
-            Name
-            <input id="name" name="name" required maxlength="200" placeholder="e.g. Plant Wildflowers" />
-          </label>
-          <label class="input-only">
-            <select id="schedule" name="schedule" aria-label="Schedule">
-              <option value="one-time">One-time</option>
-              <option value="recurring">Recurring</option>
-            </select>
-          </label>
-          <label id="interval-label" style="display: none">
-            Recur every
-            <div class="row">
-              <input id="interval-value" name="interval-value" type="number" min="1" step="1" value="1" />
-              <select id="interval-unit" name="interval-unit">
-                <option value="minutes">minutes</option>
-                <option value="hours">hours</option>
-                <option value="days" selected>days</option>
-                <option value="weeks">weeks</option>
-                <option value="years">years</option>
+        <div class="section-header">
+          <h2>Add A Task</h2>
+          <button
+            type="button"
+            class="secondary collapse-toggle"
+            data-target="add-task-content"
+            aria-controls="add-task-content"
+            aria-expanded="true"
+          >
+            Collapse
+          </button>
+        </div>
+        <div id="add-task-content" class="collapsible-content">
+          <form id="item-form">
+            <label>
+              Name
+              <input id="name" name="name" required maxlength="200" placeholder="e.g. Plant Wildflowers" />
+            </label>
+            <label class="input-only">
+              <select id="schedule" name="schedule" aria-label="Schedule">
+                <option value="one-time">One-time</option>
+                <option value="recurring">Recurring</option>
               </select>
+            </label>
+            <label id="interval-label" style="display: none">
+              Recur every
+              <div class="row">
+                <input id="interval-value" name="interval-value" type="number" min="1" step="1" value="1" />
+                <select id="interval-unit" name="interval-unit">
+                  <option value="minutes">minutes</option>
+                  <option value="hours">hours</option>
+                  <option value="days" selected>days</option>
+                  <option value="weeks">weeks</option>
+                  <option value="years">years</option>
+                </select>
+              </div>
+            </label>
+            <label class="input-only">
+              <input id="color" name="color" type="color" value="#4cc9f0" aria-label="Colour" />
+            </label>
+            <label>
+              Urgency
+              <select id="urgency" name="urgency">
+                <option value="S">S (Highest)</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C" selected>C</option>
+                <option value="D">D</option>
+                <option value="E">E (Lowest)</option>
+              </select>
+            </label>
+            <label>
+              Category (optional)
+              <select id="category" name="category">
+                <option value="" selected>None</option>
+                <option value="Health">Health</option>
+                <option value="Financial">Financial</option>
+                <option value="Chore">Chore</option>
+                <option value="Hobby">Hobby</option>
+                <option value="Work">Work</option>
+                <option value="Community">Community</option>
+              </select>
+            </label>
+            <div class="form-submit-row">
+              <button type="submit">Create</button>
             </div>
-          </label>
-          <label class="input-only">
-            <input id="color" name="color" type="color" value="#4cc9f0" aria-label="Colour" />
-          </label>
-          <label>
-            Urgency
-            <select id="urgency" name="urgency">
-              <option value="S">S (Highest)</option>
-              <option value="A">A</option>
-              <option value="B">B</option>
-              <option value="C" selected>C</option>
-              <option value="D">D</option>
-              <option value="E">E (Lowest)</option>
-            </select>
-          </label>
-          <label>
-            Category (optional)
-            <select id="category" name="category">
-              <option value="" selected>None</option>
-              <option value="Health">Health</option>
-              <option value="Financial">Financial</option>
-              <option value="Chore">Chore</option>
-              <option value="Hobby">Hobby</option>
-              <option value="Work">Work</option>
-              <option value="Community">Community</option>
-            </select>
-          </label>
-          <div class="form-submit-row">
-            <button type="submit">Create</button>
-          </div>
-        </form>
+          </form>
+        </div>
       </section>
       <section id="experience-section">
         <h2>Experience Points</h2>
@@ -629,45 +682,103 @@
               <option value="category">Category</option>
             </select>
           </label>
+          <button
+            type="button"
+            class="secondary collapse-toggle"
+            data-target="current-tasks-content"
+            aria-controls="current-tasks-content"
+            aria-expanded="true"
+          >
+            Collapse
+          </button>
         </div>
       </div>
-      <ul id="tasks-list"></ul>
-      <div id="tasks-pagination" class="pagination" hidden></div>
+      <div id="current-tasks-content" class="collapsible-content">
+        <ul id="tasks-list"></ul>
+        <div id="tasks-pagination" class="pagination" hidden></div>
+      </div>
     </section>
 
     <section>
-      <h2>Completion History</h2>
-      <ul id="history-list"></ul>
-      <div id="history-pagination" class="pagination" hidden></div>
+      <div class="section-header">
+        <h2>Completion History</h2>
+        <button
+          type="button"
+          class="secondary collapse-toggle"
+          data-target="completion-history-content"
+          aria-controls="completion-history-content"
+          aria-expanded="true"
+        >
+          Collapse
+        </button>
+      </div>
+      <div id="completion-history-content" class="collapsible-content">
+        <ul id="history-list"></ul>
+        <div id="history-pagination" class="pagination" hidden></div>
+      </div>
     </section>
 
     <section>
-      <h2>Sync Across Devices</h2>
-      <div class="sync-helper">
-        <div class="muted">Keep state on GitHub Gists so refresh on desktop picks up mobile changes.</div>
-        <div class="info-bubble" role="note" aria-label="Gist sync setup help">
-          Setup:
-          <ul>
-            <li>Create a GitHub personal access token with <strong>gist</strong> scope.</li>
-            <li>Paste it here and click <strong>Save Token</strong>.</li>
-            <li>Click <strong>Create Shared Sync Link</strong> once, then open/copy that same link on each device.</li>
-            <li>Use <strong>Sync Now</strong> anytime to pull latest changes; edits auto-push when token + sync link are present.</li>
-          </ul>
+      <div class="section-header">
+        <h2>Stats</h2>
+        <button
+          type="button"
+          class="secondary collapse-toggle"
+          data-target="stats-content"
+          aria-controls="stats-content"
+          aria-expanded="true"
+        >
+          Collapse
+        </button>
+      </div>
+      <div id="stats-content" class="collapsible-content">
+        <div class="stats-graph-wrap">
+          <svg id="stats-graph" viewBox="0 0 700 240" role="img" aria-label="Experience earned each day for the last week"></svg>
         </div>
-        <label>
-          GitHub token (gist scope)
-          <input id="github-token" type="password" autocomplete="off" placeholder="github_pat_..." />
-        </label>
-        <div class="actions">
-          <button id="save-github-token" type="button" class="secondary">Save Token</button>
-          <button id="create-shared-sync" type="button">Create Shared Sync Link</button>
-          <button id="sync-now" type="button" class="secondary">Sync Now</button>
+        <div id="stats-summary" class="muted" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-header">
+        <h2>Sync Across Devices</h2>
+        <button
+          type="button"
+          class="secondary collapse-toggle"
+          data-target="sync-content"
+          aria-controls="sync-content"
+          aria-expanded="true"
+        >
+          Collapse
+        </button>
+      </div>
+      <div id="sync-content" class="collapsible-content">
+        <div class="sync-helper">
+          <div class="muted">Keep state on GitHub Gists so refresh on desktop picks up mobile changes.</div>
+          <div class="info-bubble" role="note" aria-label="Gist sync setup help">
+            Setup:
+            <ul>
+              <li>Create a GitHub personal access token with <strong>gist</strong> scope.</li>
+              <li>Paste it here and click <strong>Save Token</strong>.</li>
+              <li>Click <strong>Create Shared Sync Link</strong> once, then open/copy that same link on each device.</li>
+              <li>Use <strong>Sync Now</strong> anytime to pull latest changes; edits auto-push when token + sync link are present.</li>
+            </ul>
+          </div>
+          <label>
+            GitHub token (gist scope)
+            <input id="github-token" type="password" autocomplete="off" placeholder="github_pat_..." />
+          </label>
+          <div class="actions">
+            <button id="save-github-token" type="button" class="secondary">Save Token</button>
+            <button id="create-shared-sync" type="button">Create Shared Sync Link</button>
+            <button id="sync-now" type="button" class="secondary">Sync Now</button>
+          </div>
+          <div class="sync-link-row">
+            <input id="sync-link" readonly aria-label="Sync link" />
+            <button id="copy-sync-link" type="button" class="secondary">Copy Sync Link</button>
+          </div>
+          <div id="sync-copy-status" class="muted" aria-live="polite"></div>
         </div>
-        <div class="sync-link-row">
-          <input id="sync-link" readonly aria-label="Sync link" />
-          <button id="copy-sync-link" type="button" class="secondary">Copy Sync Link</button>
-        </div>
-        <div id="sync-copy-status" class="muted" aria-live="polite"></div>
       </div>
     </section>
 
@@ -712,6 +823,9 @@
       const historyList = document.getElementById("history-list");
       const tasksPagination = document.getElementById("tasks-pagination");
       const historyPagination = document.getElementById("history-pagination");
+      const statsGraph = document.getElementById("stats-graph");
+      const statsSummary = document.getElementById("stats-summary");
+      const collapseToggleButtons = Array.from(document.querySelectorAll(".collapse-toggle"));
       const githubTokenInput = document.getElementById("github-token");
       const saveGithubTokenButton = document.getElementById("save-github-token");
       const createSharedSyncButton = document.getElementById("create-shared-sync");
@@ -823,10 +937,37 @@
             ...entry,
             schedule: entry?.schedule === "recurring" ? "recurring" : "one-time",
             nextDueAt: Number(entry?.nextDueAt) || null,
+            intervalMinutes: Number(entry?.intervalMinutes) > 0 ? Math.max(1, Number(entry.intervalMinutes)) : null,
+            experiencePointsEarned:
+              Number.isFinite(Number(entry?.experiencePointsEarned)) && Number(entry.experiencePointsEarned) >= 0
+                ? Math.floor(Number(entry.experiencePointsEarned))
+                : null,
             color: normalizeColor(entry.color, getDefaultColor()),
             urgency: normalizeUrgency(entry.urgency, "C"),
             category: normalizeCategory(entry.category, null),
           }));
+      }
+
+      function setSectionCollapsed(toggleButton, collapsed) {
+        if (!toggleButton) return;
+        const targetId = toggleButton.dataset.target;
+        if (!targetId) return;
+        const content = document.getElementById(targetId);
+        if (!content) return;
+        content.hidden = collapsed;
+        toggleButton.setAttribute("aria-expanded", String(!collapsed));
+        toggleButton.textContent = collapsed ? "Expand" : "Collapse";
+      }
+
+      function initCollapsibleSections() {
+        for (const button of collapseToggleButtons) {
+          const expanded = button.getAttribute("aria-expanded") !== "false";
+          setSectionCollapsed(button, !expanded);
+          button.addEventListener("click", () => {
+            const isExpanded = button.getAttribute("aria-expanded") === "true";
+            setSectionCollapsed(button, isExpanded);
+          });
+        }
       }
 
       function inferUpdatedAt(items, history) {
@@ -1513,6 +1654,125 @@
         return 5;
       }
 
+      function getHistoryEntryExperiencePoints(entry, linkedItem) {
+        if (!entry) return 0;
+        const explicitPoints = Number(entry.experiencePointsEarned);
+        if (Number.isFinite(explicitPoints) && explicitPoints >= 0) {
+          return Math.floor(explicitPoints);
+        }
+        if (entry.schedule !== "recurring") return 5;
+        if (Number(entry.intervalMinutes) > 0) return getCompletionExperiencePoints(entry);
+        if (linkedItem?.schedule === "recurring") return getCompletionExperiencePoints(linkedItem);
+        return 1;
+      }
+
+      function renderStats(completedEntries, itemsById) {
+        if (!statsGraph || !statsSummary) return;
+        const DAY_MS = 24 * 60 * 60 * 1000;
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        const todayStart = now.getTime();
+        const firstDayStart = todayStart - DAY_MS * 6;
+        const xpPerDay = Array.from({ length: 7 }, () => 0);
+
+        for (const entry of completedEntries) {
+          const completedAt = Number(entry?.completedAt);
+          if (!Number.isFinite(completedAt) || completedAt < firstDayStart || completedAt >= todayStart + DAY_MS) continue;
+          const entryDayStart = new Date(completedAt);
+          entryDayStart.setHours(0, 0, 0, 0);
+          const dayIndex = Math.floor((entryDayStart.getTime() - firstDayStart) / DAY_MS);
+          if (dayIndex < 0 || dayIndex > 6) continue;
+          const linkedItem = itemsById.get(entry.itemId);
+          xpPerDay[dayIndex] += getHistoryEntryExperiencePoints(entry, linkedItem);
+        }
+
+        const width = 700;
+        const height = 240;
+        const padding = { top: 14, right: 16, bottom: 34, left: 44 };
+        const innerWidth = width - padding.left - padding.right;
+        const innerHeight = height - padding.top - padding.bottom;
+        const maxY = Math.max(1, ...xpPerDay);
+
+        const createSvgEl = (tag) => document.createElementNS("http://www.w3.org/2000/svg", tag);
+        statsGraph.innerHTML = "";
+        statsGraph.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+        for (let step = 0; step <= 4; step += 1) {
+          const yValue = Math.round((maxY * step) / 4);
+          const y = padding.top + innerHeight - (innerHeight * yValue) / maxY;
+          const grid = createSvgEl("line");
+          grid.setAttribute("x1", String(padding.left));
+          grid.setAttribute("x2", String(width - padding.right));
+          grid.setAttribute("y1", String(y));
+          grid.setAttribute("y2", String(y));
+          grid.setAttribute("class", "stats-grid");
+          statsGraph.appendChild(grid);
+
+          const label = createSvgEl("text");
+          label.setAttribute("x", String(padding.left - 8));
+          label.setAttribute("y", String(y + 4));
+          label.setAttribute("text-anchor", "end");
+          label.setAttribute("class", "stats-label");
+          label.textContent = String(yValue);
+          statsGraph.appendChild(label);
+        }
+
+        const xAxis = createSvgEl("line");
+        xAxis.setAttribute("x1", String(padding.left));
+        xAxis.setAttribute("x2", String(width - padding.right));
+        xAxis.setAttribute("y1", String(height - padding.bottom));
+        xAxis.setAttribute("y2", String(height - padding.bottom));
+        xAxis.setAttribute("class", "stats-axis");
+        statsGraph.appendChild(xAxis);
+
+        const yAxis = createSvgEl("line");
+        yAxis.setAttribute("x1", String(padding.left));
+        yAxis.setAttribute("x2", String(padding.left));
+        yAxis.setAttribute("y1", String(padding.top));
+        yAxis.setAttribute("y2", String(height - padding.bottom));
+        yAxis.setAttribute("class", "stats-axis");
+        statsGraph.appendChild(yAxis);
+
+        const points = xpPerDay.map((value, index) => {
+          const x = padding.left + (innerWidth * index) / 6;
+          const y = padding.top + innerHeight - (innerHeight * value) / maxY;
+          return { x, y, value, index };
+        });
+
+        const polyline = createSvgEl("polyline");
+        polyline.setAttribute(
+          "points",
+          points
+            .map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`)
+            .join(" ")
+        );
+        polyline.setAttribute("class", "stats-line");
+        statsGraph.appendChild(polyline);
+
+        const dayLabelFormatter = new Intl.DateTimeFormat(undefined, { weekday: "short" });
+        for (const point of points) {
+          const dot = createSvgEl("circle");
+          dot.setAttribute("cx", String(point.x));
+          dot.setAttribute("cy", String(point.y));
+          dot.setAttribute("r", "3");
+          dot.setAttribute("class", "stats-point");
+          statsGraph.appendChild(dot);
+
+          const day = new Date(firstDayStart + point.index * DAY_MS);
+          const xLabel = createSvgEl("text");
+          xLabel.setAttribute("x", String(point.x));
+          xLabel.setAttribute("y", String(height - 12));
+          xLabel.setAttribute("text-anchor", "middle");
+          xLabel.setAttribute("class", "stats-label");
+          xLabel.textContent = dayLabelFormatter.format(day);
+          statsGraph.appendChild(xLabel);
+        }
+
+        const totalWeekXp = xpPerDay.reduce((sum, value) => sum + value, 0);
+        const todayXp = xpPerDay[6] || 0;
+        statsSummary.textContent = `Last 7 days: ${totalWeekXp} XP total • Today: ${todayXp} XP`;
+      }
+
       function completeItem(id, listItemEl, checkboxEl) {
         if (listItemEl?.classList.contains("completing")) return;
         if (checkboxEl) {
@@ -1522,39 +1782,45 @@
         if (listItemEl) listItemEl.classList.add("completing");
 
         const applyCompletion = () => {
-        const now = Date.now();
-        const items = loadItems();
-        const itemIndex = items.findIndex((item) => item.id === id);
-        if (itemIndex < 0) return;
+          const now = Date.now();
+          const items = loadItems();
+          const itemIndex = items.findIndex((item) => item.id === id);
+          if (itemIndex < 0) return;
 
-        const item = items[itemIndex];
-        if (item.schedule === "one-time") {
-          items[itemIndex] = { ...item, completedAt: now };
-        } else {
-          const { intervalMinutes } = normalizeInterval(item);
-          items[itemIndex] = { ...item, nextDueAt: now + intervalMinutes * 60 * 1000, completedAt: now };
-        }
-        const history = loadHistory();
-        history.unshift({
-          id: crypto.randomUUID(),
-          itemId: item.id,
-          name: item.name,
-          type: item.type,
-          schedule: item.schedule,
-          nextDueAt: items[itemIndex].nextDueAt,
-          color: item.color,
-          completedAt: now,
-          urgency: item.urgency,
-          category: item.category,
-        });
-        const nextExperiencePoints = Math.max(0, Number(appState.experiencePoints) || 0) + getCompletionExperiencePoints(item);
-        persistState({
-          ...appState,
-          items: items.map(normalizeItem),
-          history: normalizeHistoryEntries(history),
-          experiencePoints: nextExperiencePoints,
-        });
-        render();
+          const item = items[itemIndex];
+          const completionIntervalMinutes = item.schedule === "recurring" ? normalizeInterval(item).intervalMinutes : null;
+          const completionPoints = getCompletionExperiencePoints({
+            ...item,
+            intervalMinutes: completionIntervalMinutes,
+          });
+          if (item.schedule === "one-time") {
+            items[itemIndex] = { ...item, completedAt: now };
+          } else {
+            items[itemIndex] = { ...item, nextDueAt: now + completionIntervalMinutes * 60 * 1000, completedAt: now };
+          }
+          const history = loadHistory();
+          history.unshift({
+            id: crypto.randomUUID(),
+            itemId: item.id,
+            name: item.name,
+            type: item.type,
+            schedule: item.schedule,
+            nextDueAt: items[itemIndex].nextDueAt,
+            color: item.color,
+            completedAt: now,
+            urgency: item.urgency,
+            category: item.category,
+            intervalMinutes: completionIntervalMinutes,
+            experiencePointsEarned: completionPoints,
+          });
+          const nextExperiencePoints = Math.max(0, Number(appState.experiencePoints) || 0) + completionPoints;
+          persistState({
+            ...appState,
+            items: items.map(normalizeItem),
+            history: normalizeHistoryEntries(history),
+            experiencePoints: nextExperiencePoints,
+          });
+          render();
         };
 
         if (listItemEl) {
@@ -1635,6 +1901,7 @@
         const completedEntries = loadHistory()
           .filter((entry) => entry && entry.name && entry.completedAt)
           .sort((a, b) => b.completedAt - a.completedAt);
+        renderStats(completedEntries, itemsById);
         historyPage = clampPage(historyPage, completedEntries.length);
         const visibleEntries = getPageEntries(completedEntries, historyPage);
         renderPagination(historyPagination, completedEntries.length, historyPage, (nextPage) => {
@@ -1882,6 +2149,7 @@
       editCategoryInput.value = "";
       githubTokenInput.value = loadGithubToken();
       updateSyncLinkDisplay();
+      initCollapsibleSections();
       toggleIntervalVisibility();
       toggleEditIntervalVisibility();
       render();
