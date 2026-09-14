@@ -402,6 +402,50 @@
       }
       #add-task-section form {
         margin-bottom: 0;
+        grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+      }
+      #add-task-section .task-name-field,
+      #add-task-section .task-interval-field,
+      #add-task-section .task-submit-row {
+        grid-column: 1 / -1;
+      }
+      #add-task-section .task-schedule-field,
+      #add-task-section .task-color-field,
+      #add-task-section .task-urgency-field,
+      #add-task-section .task-category-field {
+        width: 100%;
+        min-width: 0;
+      }
+      #add-task-section .task-schedule-field select,
+      #add-task-section .task-urgency-field select,
+      #add-task-section .task-category-field select {
+        width: 100%;
+      }
+      #add-task-section .task-color-field {
+        justify-self: start;
+        width: fit-content;
+      }
+      #add-task-section .task-color-field input {
+        width: 2.5rem;
+        height: 2.5rem;
+      }
+      #add-task-section .task-interval-field .row {
+        flex-wrap: wrap;
+        width: 100%;
+      }
+      #add-task-section .task-interval-field {
+        min-width: 0;
+      }
+      #add-task-section .task-submit-row {
+        justify-content: flex-end;
+      }
+      #interval-value,
+      #edit-interval-value {
+        width: 5.5rem;
+      }
+      #interval-unit,
+      #edit-interval-unit {
+        width: 8rem;
       }
       #experience-section {
         display: flex;
@@ -597,17 +641,17 @@
         </div>
         <div id="add-task-content" class="collapsible-content">
           <form id="item-form">
-            <label>
+            <label class="task-name-field">
               Name
               <input id="name" name="name" required maxlength="200" placeholder="e.g. Plant Wildflowers" />
             </label>
-            <label class="input-only">
+            <label class="input-only task-schedule-field">
               <select id="schedule" name="schedule" aria-label="Schedule">
                 <option value="one-time">One-time</option>
                 <option value="recurring">Recurring</option>
               </select>
             </label>
-            <label id="interval-label" style="display: none">
+            <label id="interval-label" class="task-interval-field" style="display: none">
               Recur every
               <div class="row">
                 <input id="interval-value" name="interval-value" type="number" min="1" step="1" value="1" />
@@ -620,10 +664,10 @@
                 </select>
               </div>
             </label>
-            <label class="input-only">
+              <label class="input-only task-color-field">
               <input id="color" name="color" type="color" value="#4cc9f0" aria-label="Colour" />
             </label>
-            <label>
+              <label class="task-urgency-field">
               Urgency
               <select id="urgency" name="urgency">
                 <option value="S">S (Highest)</option>
@@ -634,7 +678,7 @@
                 <option value="E">E (Lowest)</option>
               </select>
             </label>
-            <label>
+              <label class="task-category-field">
               Category (optional)
               <select id="category" name="category">
                 <option value="" selected>None</option>
@@ -646,7 +690,7 @@
                 <option value="Community">Community</option>
               </select>
             </label>
-            <div class="form-submit-row">
+            <div class="form-submit-row task-submit-row">
               <button type="submit">Create</button>
             </div>
           </form>
