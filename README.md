@@ -20,7 +20,7 @@ Simple GitHub Pages-ready task tracker with local persistence.
 - Completion history entries include **Add To Queue Now** to instantly make a linked item due
 - Edit item name, recurrence, and colour from the queue or completion history
 - Permanently delete queued items
-- Dark-mode psychedelic visual theme with high-contrast text
+- Dark-mode polished visual theme with neon accents and high-contrast text
 - Data persists locally in the browser via `localStorage`
 - **Sync Across Devices** uses GitHub Gists as the canonical shared state so mobile/desktop refreshes stay in sync
 - Shared links are anonymous (`?sync=<gist-id>`) and readable without sign-in; writing requires a GitHub token with gist scope on that device
