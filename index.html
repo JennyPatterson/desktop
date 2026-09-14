@@ -227,6 +227,24 @@
         border: 1px solid #ffffff70;
         flex: 0 0 auto;
       }
+      .category-icon {
+        width: 0.95rem;
+        height: 0.95rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #d9d3f9;
+        flex: 0 0 auto;
+      }
+      .category-icon svg {
+        width: 100%;
+        height: 100%;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
       .actions {
         display: flex;
         align-items: center;
@@ -409,6 +427,18 @@
               <option value="E">E (Lowest)</option>
             </select>
           </label>
+          <label>
+            Category (optional)
+            <select id="category" name="category">
+              <option value="" selected>None</option>
+              <option value="Health">Health</option>
+              <option value="Financial">Financial</option>
+              <option value="Chore">Chore</option>
+              <option value="Hobby">Hobby</option>
+              <option value="Work">Work</option>
+              <option value="Community">Community</option>
+            </select>
+          </label>
           <button type="submit">Save</button>
         </form>
       </section>
@@ -460,6 +490,18 @@
             <option value="E">E (Lowest)</option>
           </select>
         </label>
+        <label>
+          Category (optional)
+          <select id="edit-category" name="edit-category">
+            <option value="">None</option>
+            <option value="Health">Health</option>
+            <option value="Financial">Financial</option>
+            <option value="Chore">Chore</option>
+            <option value="Hobby">Hobby</option>
+            <option value="Work">Work</option>
+            <option value="Community">Community</option>
+          </select>
+        </label>
         <div class="actions">
           <button type="submit">Save changes</button>
           <button id="cancel-edit" type="button" class="secondary">Cancel</button>
@@ -476,6 +518,7 @@
             <option value="latency" selected>Latency</option>
             <option value="priority">Priority</option>
             <option value="frequency">Frequency</option>
+            <option value="category">Category</option>
           </select>
         </label>
       </div>
@@ -539,6 +582,7 @@
       const intervalValueInput = document.getElementById("interval-value");
       const intervalUnitInput = document.getElementById("interval-unit");
       const urgencyInput = document.getElementById("urgency");
+      const categoryInput = document.getElementById("category");
       const experiencePointsDisplay = document.getElementById("experience-points");
       const editPanel = document.getElementById("edit-panel");
       const editForm = document.getElementById("edit-form");
@@ -549,6 +593,7 @@
       const editIntervalUnitInput = document.getElementById("edit-interval-unit");
       const editColorInput = document.getElementById("edit-color");
       const editUrgencyInput = document.getElementById("edit-urgency");
+      const editCategoryInput = document.getElementById("edit-category");
       const cancelEditButton = document.getElementById("cancel-edit");
       const sortModeInput = document.getElementById("sort-mode");
       const tasksList = document.getElementById("tasks-list");
@@ -568,6 +613,21 @@
       const WEEKLY_INTERVAL_MINUTES = 10080;
       const MONTHLY_INTERVAL_MINUTES = 43200;
       const URGENCY_VALUES = ["S", "A", "B", "C", "D", "E"];
+      const CATEGORY_VALUES = ["Health", "Financial", "Chore", "Hobby", "Work", "Community"];
+      const CATEGORY_ICON_SVGS = {
+        Health:
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-6.8-4.7-8.8-8.1C1.5 8.8 3.1 5.5 6.4 5.5c2 0 3.2 1 4.1 2.4.9-1.4 2.1-2.4 4.1-2.4 3.3 0 4.9 3.3 3.2 6.4C18.8 15.3 12 20 12 20z"></path></svg>',
+        Financial:
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="6.5" width="17" height="11" rx="2"></rect><circle cx="12" cy="12" r="2.2"></circle><path d="M6.5 9.5h1M16.5 14.5h1"></path></svg>',
+        Chore:
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5l4 4 11-11"></path></svg>',
+        Hobby:
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.5 5.2 5.7.8-4.1 4 1 5.7L12 16.3 6.9 19.2l1-5.7-4.1-4 5.7-.8L12 3.5z"></path></svg>',
+        Work:
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="7.5" width="17" height="11" rx="2"></rect><path d="M9 7.5v-1.2A1.8 1.8 0 0 1 10.8 4.5h2.4A1.8 1.8 0 0 1 15 6.3V7.5M3.5 11.2h17"></path></svg>',
+        Community:
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="10" r="2.2"></circle><circle cx="16" cy="10" r="2.2"></circle><path d="M4.5 17c.6-2.2 2.1-3.3 3.5-3.3S10.9 14.8 11.5 17M12.5 17c.6-2.2 2.1-3.3 3.5-3.3s2.9 1.1 3.5 3.3"></path></svg>',
+      };
       let editingItemId = null;
       let addColorCustomized = false;
       let syncId = null;
@@ -596,18 +656,25 @@
         return URGENCY_VALUES.includes(normalized) ? normalized : fallback;
       }
 
+      function normalizeCategory(value, fallback = null) {
+        if (typeof value !== "string") return fallback;
+        const normalized = value.trim();
+        return CATEGORY_VALUES.includes(normalized) ? normalized : fallback;
+      }
+
       function normalizeItem(item) {
         const normalizedSchedule = item?.schedule === "recurring" ? "recurring" : "one-time";
         const base = { ...item, type: "task", schedule: normalizedSchedule };
         const color = normalizeColor(item?.color, getDefaultColor());
         const urgency = normalizeUrgency(item?.urgency, "C");
+        const category = normalizeCategory(item?.category, null);
 
         if (normalizedSchedule === "recurring") {
           const { value, unit, intervalMinutes } = normalizeInterval(base);
-          return { ...base, color, urgency, intervalValue: value, intervalUnit: unit, intervalMinutes };
+          return { ...base, color, urgency, category, intervalValue: value, intervalUnit: unit, intervalMinutes };
         }
 
-        return { ...base, color, urgency, intervalValue: null, intervalUnit: null, intervalMinutes: null };
+        return { ...base, color, urgency, category, intervalValue: null, intervalUnit: null, intervalMinutes: null };
       }
 
       function normalizeHistoryEntries(history) {
@@ -618,6 +685,7 @@
             ...entry,
             color: normalizeColor(entry.color, getDefaultColor()),
             urgency: normalizeUrgency(entry.urgency, "C"),
+            category: normalizeCategory(entry.category, null),
           }));
       }
 
@@ -630,7 +698,7 @@
       function normalizeSnapshot(snapshot) {
         const items = Array.isArray(snapshot?.items) ? snapshot.items.filter((item) => item && item.id).map(normalizeItem) : [];
         const history = normalizeHistoryEntries(snapshot?.history);
-        const sortMode = ["latency", "priority", "frequency"].includes(snapshot?.sortMode) ? snapshot.sortMode : "latency";
+        const sortMode = ["latency", "priority", "frequency", "category"].includes(snapshot?.sortMode) ? snapshot.sortMode : "latency";
         const experiencePoints = Math.max(0, Math.floor(Number(snapshot?.experiencePoints) || 0));
         const updatedAt = Math.max(0, Number(snapshot?.updatedAt) || inferUpdatedAt(items, history));
         return { items, history, sortMode, experiencePoints, updatedAt };
@@ -1078,6 +1146,23 @@
         return grade;
       }
 
+      function createCategoryIcon(category) {
+        const normalized = normalizeCategory(category, null);
+        if (!normalized) return null;
+        const icon = document.createElement("span");
+        icon.className = "category-icon";
+        icon.title = `${normalized} category`;
+        icon.ariaLabel = `${normalized} category`;
+        icon.innerHTML = CATEGORY_ICON_SVGS[normalized];
+        return icon;
+      }
+
+      function categoryRank(item) {
+        const category = normalizeCategory(item?.category, null);
+        const index = CATEGORY_VALUES.indexOf(category);
+        return index === -1 ? CATEGORY_VALUES.length : index;
+      }
+
       function urgencyRank(item) {
         const urgency = normalizeUrgency(item?.urgency, "C");
         const index = URGENCY_VALUES.indexOf(urgency);
@@ -1092,10 +1177,12 @@
           const bFrequency = b.schedule === "recurring" ? Number(b.intervalMinutes) || Number.MAX_SAFE_INTEGER : Number.MAX_SAFE_INTEGER;
           return aFrequency - bFrequency || byPriority(a, b);
         };
+        const byCategory = (a, b) => categoryRank(a) - categoryRank(b) || byPriority(a, b);
 
         return [...items].sort((a, b) => {
           if (mode === "priority") return byPriority(a, b);
           if (mode === "frequency") return byFrequency(a, b);
+          if (mode === "category") return byCategory(a, b);
           return byLatency(a, b);
         });
       }
@@ -1190,6 +1277,7 @@
           const color = document.createElement("span");
           color.className = "item-color";
           color.style.backgroundColor = item.color;
+          const categoryIcon = createCategoryIcon(item.category);
           const textWrap = document.createElement("div");
           const name = document.createElement("div");
           name.textContent = item.name;
@@ -1213,6 +1301,7 @@
           textWrap.appendChild(meta);
           left.appendChild(checkbox);
           left.appendChild(color);
+          if (categoryIcon) left.appendChild(categoryIcon);
           left.appendChild(textWrap);
           actions.appendChild(urgencyGrade);
           actions.appendChild(editButton);
@@ -1263,6 +1352,7 @@
           color: item.color,
           completedAt: now,
           urgency: item.urgency,
+          category: item.category,
         });
         const nextExperiencePoints = Math.max(0, Number(appState.experiencePoints) || 0) + getCompletionExperiencePoints(item);
         persistState({
@@ -1287,7 +1377,7 @@
         const updated = history.map((entry) => {
           if (entry.itemId !== item.id) return entry;
           changed = true;
-          return { ...entry, name: item.name, color: item.color, urgency: item.urgency };
+          return { ...entry, name: item.name, color: item.color, urgency: item.urgency, category: item.category };
         });
         if (changed) saveHistory(updated);
       }
@@ -1329,6 +1419,7 @@
         editIntervalUnitInput.value = unit;
         editColorInput.value = item.color;
         editUrgencyInput.value = item.urgency;
+        editCategoryInput.value = normalizeCategory(item.category, "") || "";
         toggleEditIntervalVisibility();
         editPanel.hidden = false;
         editNameInput.focus();
@@ -1341,6 +1432,7 @@
         editScheduleInput.value = "one-time";
         editIntervalUnitInput.value = "days";
         editUrgencyInput.value = "C";
+        editCategoryInput.value = "";
         toggleEditIntervalVisibility();
       }
 
@@ -1428,6 +1520,7 @@
         const intervalMinutes = intervalValue * UNIT_TO_MINUTES[intervalUnit];
         const color = normalizeColor(colorInput.value, getDefaultColor());
         const urgency = normalizeUrgency(urgencyInput.value, "C");
+        const category = normalizeCategory(categoryInput.value, null);
         const now = Date.now();
 
         const newItem = {
@@ -1436,6 +1529,7 @@
           type: "task",
           color,
           urgency,
+          category,
           schedule,
           intervalMinutes: schedule === "recurring" ? intervalMinutes : null,
           intervalValue: schedule === "recurring" ? intervalValue : null,
@@ -1453,6 +1547,7 @@
         intervalUnitInput.value = "days";
         colorInput.value = getDefaultColor();
         urgencyInput.value = "C";
+        categoryInput.value = "";
         addColorCustomized = false;
         toggleIntervalVisibility();
         render();
@@ -1471,6 +1566,7 @@
         const schedule = editScheduleInput.value;
         const color = normalizeColor(editColorInput.value, getDefaultColor());
         const urgency = normalizeUrgency(editUrgencyInput.value, "C");
+        const category = normalizeCategory(editCategoryInput.value, null);
         const intervalValue = Math.max(1, Number(editIntervalValueInput.value) || 1);
         const intervalUnit = UNIT_TO_MINUTES[editIntervalUnitInput.value] ? editIntervalUnitInput.value : "minutes";
         const intervalMinutes = intervalValue * UNIT_TO_MINUTES[intervalUnit];
@@ -1479,6 +1575,7 @@
           name,
           color,
           urgency,
+          category,
           schedule,
           intervalMinutes: schedule === "recurring" ? intervalMinutes : null,
           intervalValue: schedule === "recurring" ? intervalValue : null,
@@ -1561,6 +1658,8 @@
       sortModeInput.value = appState.sortMode;
       urgencyInput.value = "C";
       editUrgencyInput.value = "C";
+      categoryInput.value = "";
+      editCategoryInput.value = "";
       githubTokenInput.value = loadGithubToken();
       updateSyncLinkDisplay();
       toggleIntervalVisibility();

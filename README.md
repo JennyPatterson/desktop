@@ -7,10 +7,13 @@ Simple GitHub Pages-ready task tracker with local persistence.
 - Set each item to **One-time** or **Recurring**
 - Configure recurring cadence in **minutes, hours, days, weeks, or years**
 - Assign an **Urgency** level per task (`S`, `A`, `B`, `C`, `D`, `E`)
+- Optionally assign a **Category** per task (`Health`, `Financial`, `Chore`, `Hobby`, `Work`, `Community`)
 - Pick a custom colour per item
+- Category-specific minimalist icons shown beside each current task title
 - Check items off when complete
 - Sparkle animation plays when a task is checked off
 - Recurring items automatically return to the queue after their configured delay
+- Sort current tasks by **Latency**, **Priority**, **Frequency**, or **Category**
 - Earn experience points when completing tasks based on recurrence cadence
 - Completion history feed shows the 20 most recently completed tasks
 - Completion history entries include **Add To Queue Now** to instantly make a linked item due
