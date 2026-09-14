@@ -5,7 +5,7 @@ Simple GitHub Pages-ready task tracker with local persistence.
 ## Features
 
 - Set each item to **One-time** or **Recurring**
-- Configure recurring cadence in **minutes, hours, days, weeks, or years**
+- Configure recurring cadence in **hours, days, weeks, months, or years**
 - Assign an **Urgency** level per task (`S`, `A`, `B`, `C`, `D`, `E`)
 - Optionally assign a **Category** per task (`Health`, `Financial`, `Chore`, `Hobby`, `Work`, `Community`)
 - Pick a custom colour per item

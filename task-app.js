@@ -492,8 +492,8 @@ export class TaskboardApp {
     const schedule = this.dom.scheduleSelect.value;
     const name = nameInput.value.trim();
     if (!name) return;
-    const intervalValue = Math.max(1, Number(this.dom.intervalValueInput.value) || 1);
-    const intervalUnit = CONFIG.UNIT_TO_MINUTES[this.dom.intervalUnitInput.value] ? this.dom.intervalUnitInput.value : "minutes";
+    const intervalValue = TaskModel.normalizeRecurrenceValue(this.dom.intervalValueInput.value);
+    const intervalUnit = CONFIG.UNIT_TO_MINUTES[this.dom.intervalUnitInput.value] ? this.dom.intervalUnitInput.value : "days";
     const intervalMinutes = intervalValue * CONFIG.UNIT_TO_MINUTES[intervalUnit];
     const urgency = TaskModel.normalizeUrgency(this.dom.urgencyInput.value, "C");
     const category = TaskModel.normalizeCategory(this.dom.categoryInput.value, null);
@@ -528,8 +528,8 @@ export class TaskboardApp {
     const color = TaskModel.normalizeColor(this.dom.editColorInput.value, TaskModel.getDefaultColor());
     const urgency = TaskModel.normalizeUrgency(this.dom.editUrgencyInput.value, "C");
     const category = TaskModel.normalizeCategory(this.dom.editCategoryInput.value, null);
-    const intervalValue = Math.max(1, Number(this.dom.editIntervalValueInput.value) || 1);
-    const intervalUnit = CONFIG.UNIT_TO_MINUTES[this.dom.editIntervalUnitInput.value] ? this.dom.editIntervalUnitInput.value : "minutes";
+    const intervalValue = TaskModel.normalizeRecurrenceValue(this.dom.editIntervalValueInput.value);
+    const intervalUnit = CONFIG.UNIT_TO_MINUTES[this.dom.editIntervalUnitInput.value] ? this.dom.editIntervalUnitInput.value : "days";
     const intervalMinutes = intervalValue * CONFIG.UNIT_TO_MINUTES[intervalUnit];
     this.persistState(
       this.taskService.updateItem(this.appState, this.editingItemId, {

@@ -30,11 +30,17 @@ export class TaskModel {
     return [...new Set(normalized)];
   }
 
+  static normalizeRecurrenceValue(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return 0.1;
+    return Math.max(0.1, Math.round(numeric * 10) / 10);
+  }
+
   static normalizeInterval(item) {
     const unit = CONFIG.UNIT_TO_MINUTES[item.intervalUnit] ? item.intervalUnit : "minutes";
-    const value = Math.max(1, Number(item.intervalValue) || 1);
+    const value = this.normalizeRecurrenceValue(item.intervalValue || 1);
     const intervalMinutesFromValue = value * CONFIG.UNIT_TO_MINUTES[unit];
-    const intervalMinutes = Math.max(1, Number(item.intervalMinutes) || intervalMinutesFromValue);
+    const intervalMinutes = Math.max(0.1, Number(item.intervalMinutes) || intervalMinutesFromValue);
     if (item.intervalUnit || item.intervalValue) return { value, unit, intervalMinutes };
     return { value: intervalMinutes, unit: "minutes", intervalMinutes };
   }
