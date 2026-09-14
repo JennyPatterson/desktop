@@ -406,12 +406,39 @@
       }
       #add-task-section form {
         margin-bottom: 0;
-        grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+        grid-template-columns: 1fr;
       }
-      #add-task-section .task-name-field,
-      #add-task-section .task-interval-field,
-      #add-task-section .task-submit-row {
+      #add-task-section .add-row {
+        display: flex;
+        align-items: end;
+        gap: 0.6rem;
+        width: 100%;
+        min-width: 0;
+        flex-wrap: nowrap;
         grid-column: 1 / -1;
+      }
+      #add-task-section .add-row .task-name-field {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      #add-task-section .add-row-name {
+        display: block;
+      }
+      #add-task-section .add-row-name .task-name-field {
+        width: 100%;
+      }
+      #add-task-section .add-row .task-schedule-field {
+        flex: 1 1 10rem;
+        min-width: 0;
+      }
+      #add-task-section .add-row .task-interval-field {
+        flex: 2 1 16rem;
+        min-width: 0;
+      }
+      #add-task-section .add-row .task-urgency-field,
+      #add-task-section .add-row .task-category-field {
+        flex: 1 1 0;
+        min-width: 0;
       }
       #add-task-section .task-schedule-field,
       #add-task-section .task-urgency-field,
@@ -425,22 +452,75 @@
         width: 100%;
       }
       #add-task-section .task-interval-field .row {
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        align-items: center;
         width: 100%;
-      }
-      #add-task-section .task-interval-field {
         min-width: 0;
+        gap: 0.4rem;
       }
       #add-task-section .task-submit-row {
         justify-content: flex-end;
       }
+      #edit-form {
+        grid-template-columns: 1fr;
+      }
+      #edit-form .edit-row {
+        display: flex;
+        align-items: end;
+        gap: 0.6rem;
+        width: 100%;
+        min-width: 0;
+        flex-wrap: nowrap;
+      }
+      #edit-form .edit-row .edit-name-field,
+      #edit-form .edit-row .edit-interval-field {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      #edit-form .edit-row .edit-color-field {
+        flex: 0 0 auto;
+        width: fit-content;
+      }
+      #edit-form .edit-row .edit-schedule-field {
+        flex: 1 1 10rem;
+        min-width: 0;
+      }
+      #edit-form .edit-row .edit-urgency-field,
+      #edit-form .edit-row .edit-category-field {
+        flex: 1 1 0;
+        min-width: 0;
+      }
+      #edit-form .edit-urgency-field,
+      #edit-form .edit-category-field {
+        width: 100%;
+        min-width: 0;
+      }
+      #edit-form .edit-urgency-field select,
+      #edit-form .edit-category-field select {
+        width: 100%;
+      }
+      #edit-form .edit-interval-field .row {
+        flex-wrap: nowrap;
+        align-items: center;
+        width: 100%;
+        min-width: 0;
+        gap: 0.4rem;
+      }
+      #edit-form .edit-color-field {
+        align-self: end;
+        justify-self: start;
+      }
       #interval-value,
       #edit-interval-value {
-        width: 5.5rem;
+        width: min(100%, 5rem);
+        flex: 0 1 5rem;
+        min-width: 0;
       }
       #interval-unit,
       #edit-interval-unit {
-        width: 8rem;
+        width: min(100%, 7rem);
+        flex: 1 1 6rem;
+        min-width: 0;
       }
       #experience-section {
         display: flex;
@@ -527,10 +607,6 @@
       #edit-panel h2 {
         margin-bottom: 0.9rem;
       }
-      #interval-label,
-      #edit-interval-label {
-        grid-column: 1 / -1;
-      }
       #schedule,
       #edit-schedule {
         justify-self: start;
@@ -543,6 +619,20 @@
       .form-submit-row button {
         background: linear-gradient(155deg, #8e5dff, #6f41e7);
         border-color: #b097ff;
+        min-height: 2.35rem;
+        padding: 0.5rem 0.75rem;
+      }
+      #edit-form .edit-actions-row button[type="submit"] {
+        background: linear-gradient(155deg, #8e5dff, #6f41e7);
+        border-color: #b097ff;
+      }
+      #edit-form .edit-actions-row button {
+        min-height: 2.35rem;
+        padding: 0.5rem 0.75rem;
+      }
+      #edit-form .edit-actions-row {
+        justify-content: flex-end;
+        width: 100%;
       }
       @media (max-width: 700px) {
         h1 {
@@ -552,6 +642,12 @@
         form {
           grid-template-columns: 1fr;
           padding: 0.85rem;
+        }
+        #add-task-section form {
+          grid-template-columns: 1fr;
+        }
+        #edit-form {
+          grid-template-columns: 1fr;
         }
         .top-sections {
           grid-template-columns: 1fr;
@@ -655,52 +751,58 @@
         </div>
         <div id="add-task-content" class="collapsible-content">
           <form id="item-form">
-            <label class="task-name-field">
-              Name
-              <input id="name" name="name" required maxlength="200" placeholder="e.g. Plant Wildflowers" />
-            </label>
-            <label class="input-only task-schedule-field">
-              <select id="schedule" name="schedule" aria-label="Schedule">
-                <option value="one-time">One-time</option>
-                <option value="recurring">Recurring</option>
-              </select>
-            </label>
-            <label id="interval-label" class="task-interval-field" style="display: none">
-              Recur every
-              <div class="row">
-                <input id="interval-value" name="interval-value" type="number" min="0.1" step="0.1" value="1" inputmode="decimal" />
-                <select id="interval-unit" name="interval-unit">
-                  <option value="hours">hours</option>
-                  <option value="days" selected>days</option>
-                  <option value="weeks">weeks</option>
-                  <option value="months">months</option>
-                  <option value="years">years</option>
+            <div class="add-row add-row-name">
+              <label class="task-name-field">
+                Name
+                <input id="name" name="name" required maxlength="200" placeholder="e.g. Plant Wildflowers" />
+              </label>
+            </div>
+            <div class="add-row add-row-recurrence">
+              <label class="input-only task-schedule-field">
+                <select id="schedule" name="schedule" aria-label="Schedule">
+                  <option value="one-time">One-time</option>
+                  <option value="recurring">Recurring</option>
                 </select>
-              </div>
-            </label>
+              </label>
+              <label id="interval-label" class="task-interval-field" style="display: none">
+                Recur every
+                <div class="row">
+                  <input id="interval-value" name="interval-value" type="number" min="0.1" step="0.1" value="1" inputmode="decimal" />
+                  <select id="interval-unit" name="interval-unit">
+                    <option value="hours">hours</option>
+                    <option value="days" selected>days</option>
+                    <option value="weeks">weeks</option>
+                    <option value="months">months</option>
+                    <option value="years">years</option>
+                  </select>
+                </div>
+              </label>
+            </div>
+            <div class="add-row add-row-meta">
               <label class="task-urgency-field">
                 Urgency
                 <select id="urgency" name="urgency">
-                <option value="S">S (Highest)</option>
-                <option value="A">A</option>
-                <option value="B">B</option>
-                <option value="C" selected>C</option>
-                <option value="D">D</option>
-                <option value="E">E (Lowest)</option>
-              </select>
-            </label>
+                  <option value="S">S (Highest)</option>
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C" selected>C</option>
+                  <option value="D">D</option>
+                  <option value="E">E (Lowest)</option>
+                </select>
+              </label>
               <label class="task-category-field">
                 Category
-              <select id="category" name="category">
-                <option value="" selected>None</option>
-                <option value="Health">Health</option>
-                <option value="Financial">Financial</option>
-                <option value="Chore">Chore</option>
-                <option value="Hobby">Hobby</option>
-                <option value="Work">Work</option>
-                <option value="Community">Community</option>
-              </select>
-            </label>
+                <select id="category" name="category">
+                  <option value="" selected>None</option>
+                  <option value="Health">Health</option>
+                  <option value="Financial">Financial</option>
+                  <option value="Chore">Chore</option>
+                  <option value="Hobby">Hobby</option>
+                  <option value="Work">Work</option>
+                  <option value="Community">Community</option>
+                </select>
+              </label>
+            </div>
             <div class="form-submit-row task-submit-row">
               <button type="submit">Create</button>
             </div>
@@ -716,57 +818,63 @@
     <section id="edit-panel" hidden>
       <h2>Edit Item</h2>
       <form id="edit-form">
-        <label>
-          Name
-          <input id="edit-name" name="edit-name" required maxlength="200" />
-        </label>
-        <label class="input-only">
-          <select id="edit-schedule" name="edit-schedule" aria-label="Schedule">
-            <option value="one-time">One-time</option>
-            <option value="recurring">Recurring</option>
-          </select>
-        </label>
-        <label id="edit-interval-label" style="display: none">
-          Recur every
-          <div class="row">
-            <input id="edit-interval-value" name="edit-interval-value" type="number" min="0.1" step="0.1" value="1" inputmode="decimal" />
-            <select id="edit-interval-unit" name="edit-interval-unit">
-              <option value="hours">hours</option>
-              <option value="days">days</option>
-              <option value="weeks">weeks</option>
-              <option value="months">months</option>
-              <option value="years">years</option>
+        <div class="edit-row edit-row-name">
+          <label class="edit-name-field">
+            Name
+            <input id="edit-name" name="edit-name" required maxlength="200" />
+          </label>
+          <label class="input-only edit-color-field">
+            <input id="edit-color" name="edit-color" type="color" value="#4cc9f0" aria-label="Colour" />
+          </label>
+        </div>
+        <div class="edit-row edit-row-recurrence">
+          <label class="input-only edit-schedule-field">
+            <select id="edit-schedule" name="edit-schedule" aria-label="Schedule">
+              <option value="one-time">One-time</option>
+              <option value="recurring">Recurring</option>
             </select>
-          </div>
-        </label>
-        <label class="input-only">
-          <input id="edit-color" name="edit-color" type="color" value="#4cc9f0" aria-label="Colour" />
-        </label>
-        <label>
-          Urgency
-          <select id="edit-urgency" name="edit-urgency">
-            <option value="S">S (Highest)</option>
-            <option value="A">A</option>
-            <option value="B">B</option>
-            <option value="C">C</option>
-            <option value="D">D</option>
-            <option value="E">E (Lowest)</option>
-          </select>
-        </label>
-        <label>
-          Category
-          <select id="edit-category" name="edit-category">
-            <option value="">None</option>
-            <option value="Health">Health</option>
-            <option value="Financial">Financial</option>
-            <option value="Chore">Chore</option>
-            <option value="Hobby">Hobby</option>
-            <option value="Work">Work</option>
-            <option value="Community">Community</option>
-          </select>
-        </label>
-        <div class="actions">
-          <button type="submit">Save changes</button>
+          </label>
+          <label id="edit-interval-label" class="edit-interval-field" style="display: none">
+            Recur every
+            <div class="row">
+              <input id="edit-interval-value" name="edit-interval-value" type="number" min="0.1" step="0.1" value="1" inputmode="decimal" />
+              <select id="edit-interval-unit" name="edit-interval-unit">
+                <option value="hours">hours</option>
+                <option value="days">days</option>
+                <option value="weeks">weeks</option>
+                <option value="months">months</option>
+                <option value="years">years</option>
+              </select>
+            </div>
+          </label>
+        </div>
+        <div class="edit-row edit-row-meta">
+          <label class="edit-urgency-field">
+            Urgency
+            <select id="edit-urgency" name="edit-urgency">
+              <option value="S">S (Highest)</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+              <option value="D">D</option>
+              <option value="E">E (Lowest)</option>
+            </select>
+          </label>
+          <label class="edit-category-field">
+            Category
+            <select id="edit-category" name="edit-category">
+              <option value="">None</option>
+              <option value="Health">Health</option>
+              <option value="Financial">Financial</option>
+              <option value="Chore">Chore</option>
+              <option value="Hobby">Hobby</option>
+              <option value="Work">Work</option>
+              <option value="Community">Community</option>
+            </select>
+          </label>
+        </div>
+        <div class="actions edit-actions-row">
+          <button type="submit">Update</button>
           <button id="cancel-edit" type="button" class="secondary">Cancel</button>
         </div>
       </form>

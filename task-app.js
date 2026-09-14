@@ -266,10 +266,8 @@ export class TaskboardApp {
   }
 
   resizeScheduleSelect(selectInput) {
-    const selectedOption = selectInput?.options?.[selectInput.selectedIndex];
-    const text = (selectedOption?.textContent || "").trim();
-    const widthCh = Math.ceil(Math.max(8, text.length + 2) * 1.3);
-    selectInput.style.width = `${widthCh}ch`;
+    if (!selectInput) return;
+    selectInput.style.width = "100%";
   }
 
   setContextMenuOpen(isOpen) {
