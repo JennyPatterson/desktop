@@ -268,6 +268,22 @@
       #experience-points {
         text-align: right;
         font-weight: 700;
+        font-size: 1.8rem;
+        margin: 0.1rem 0 0;
+      }
+      .top-sections {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr);
+        gap: 0.9rem;
+        align-items: start;
+      }
+      #add-task-section form {
+        margin-bottom: 0;
+      }
+      #experience-section {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
       }
       @keyframes sparkle-burst {
         0% {
@@ -300,6 +316,15 @@
         form {
           grid-template-columns: 1fr;
           padding: 0.85rem;
+        }
+        .top-sections {
+          grid-template-columns: 1fr;
+        }
+        #experience-section {
+          align-items: flex-start;
+        }
+        #experience-points {
+          text-align: left;
         }
         .section-header {
           flex-direction: column;
@@ -341,52 +366,57 @@
   </head>
   <body>
     <h1>Tasks</h1>
-    <form id="item-form">
-      <label>
-        Name
-        <input id="name" name="name" required maxlength="200" placeholder="e.g. Plan sprint" />
-      </label>
-      <label>
-        Experience
-        <input id="experience-points" name="experience-points" type="text" value="0 XP" readonly aria-label="Experience points" />
-      </label>
-      <label>
-        Schedule
-        <select id="schedule" name="schedule">
-          <option value="one-time">One-time</option>
-          <option value="recurring">Recurring</option>
-        </select>
-      </label>
-      <label id="interval-label" style="display: none">
-        Recur every
-        <div class="row">
-          <input id="interval-value" name="interval-value" type="number" min="1" step="1" value="1" />
-          <select id="interval-unit" name="interval-unit">
-            <option value="minutes">minutes</option>
-            <option value="hours">hours</option>
-            <option value="days" selected>days</option>
-            <option value="weeks">weeks</option>
-            <option value="years">years</option>
-          </select>
-        </div>
-      </label>
-      <label>
-        Colour
-        <input id="color" name="color" type="color" value="#4cc9f0" />
-      </label>
-      <label>
-        Urgency
-        <select id="urgency" name="urgency">
-          <option value="S">S (Highest)</option>
-          <option value="A">A</option>
-          <option value="B">B</option>
-          <option value="C" selected>C</option>
-          <option value="D">D</option>
-          <option value="E">E (Lowest)</option>
-        </select>
-      </label>
-      <button type="submit">Save</button>
-    </form>
+    <div class="top-sections">
+      <section id="add-task-section">
+        <h2>Add A Task</h2>
+        <form id="item-form">
+          <label>
+            Name
+            <input id="name" name="name" required maxlength="200" placeholder="e.g. Plan sprint" />
+          </label>
+          <label>
+            Schedule
+            <select id="schedule" name="schedule">
+              <option value="one-time">One-time</option>
+              <option value="recurring">Recurring</option>
+            </select>
+          </label>
+          <label id="interval-label" style="display: none">
+            Recur every
+            <div class="row">
+              <input id="interval-value" name="interval-value" type="number" min="1" step="1" value="1" />
+              <select id="interval-unit" name="interval-unit">
+                <option value="minutes">minutes</option>
+                <option value="hours">hours</option>
+                <option value="days" selected>days</option>
+                <option value="weeks">weeks</option>
+                <option value="years">years</option>
+              </select>
+            </div>
+          </label>
+          <label>
+            Colour
+            <input id="color" name="color" type="color" value="#4cc9f0" />
+          </label>
+          <label>
+            Urgency
+            <select id="urgency" name="urgency">
+              <option value="S">S (Highest)</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C" selected>C</option>
+              <option value="D">D</option>
+              <option value="E">E (Lowest)</option>
+            </select>
+          </label>
+          <button type="submit">Save</button>
+        </form>
+      </section>
+      <section id="experience-section">
+        <h2>Experience Points</h2>
+        <p id="experience-points" aria-label="Experience points">0 XP</p>
+      </section>
+    </div>
 
     <section id="edit-panel" hidden>
       <h2>Edit Item</h2>
@@ -509,7 +539,7 @@
       const intervalValueInput = document.getElementById("interval-value");
       const intervalUnitInput = document.getElementById("interval-unit");
       const urgencyInput = document.getElementById("urgency");
-      const experiencePointsInput = document.getElementById("experience-points");
+      const experiencePointsDisplay = document.getElementById("experience-points");
       const editPanel = document.getElementById("edit-panel");
       const editForm = document.getElementById("edit-form");
       const editNameInput = document.getElementById("edit-name");
@@ -1076,8 +1106,8 @@
         const visibleTasks = items.filter((i) => isVisibleNow(i, now));
         const sortedTasks = sortTasks(visibleTasks, now, sortModeInput?.value || "latency");
         tasksPage = clampPage(tasksPage, sortedTasks.length);
-        if (experiencePointsInput) {
-          experiencePointsInput.value = `${Math.max(0, Number(appState.experiencePoints) || 0)} XP`;
+        if (experiencePointsDisplay) {
+          experiencePointsDisplay.textContent = `${Math.max(0, Number(appState.experiencePoints) || 0)} XP`;
         }
         renderList(tasksList, getPageEntries(sortedTasks, tasksPage), now);
         renderPagination(tasksPagination, sortedTasks.length, tasksPage, (nextPage) => {
