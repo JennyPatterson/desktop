@@ -73,6 +73,9 @@
         gap: 0.2rem;
         font-size: 0.9rem;
       }
+      label.input-only {
+        gap: 0;
+      }
       input,
       select,
       button {
@@ -330,6 +333,10 @@
       #edit-interval-label {
         grid-column: 1 / -1;
       }
+      #schedule,
+      #edit-schedule {
+        justify-self: start;
+      }
       @media (max-width: 700px) {
         h1 {
           margin-bottom: 0.8rem;
@@ -396,9 +403,8 @@
             Name
             <input id="name" name="name" required maxlength="200" placeholder="e.g. Plant Wildflowers" />
           </label>
-          <label>
-            Schedule
-            <select id="schedule" name="schedule">
+          <label class="input-only">
+            <select id="schedule" name="schedule" aria-label="Schedule">
               <option value="one-time">One-time</option>
               <option value="recurring">Recurring</option>
             </select>
@@ -416,9 +422,8 @@
               </select>
             </div>
           </label>
-          <label>
-            Colour
-            <input id="color" name="color" type="color" value="#4cc9f0" />
+          <label class="input-only">
+            <input id="color" name="color" type="color" value="#4cc9f0" aria-label="Colour" />
           </label>
           <label>
             Urgency
@@ -459,9 +464,8 @@
           Name
           <input id="edit-name" name="edit-name" required maxlength="200" />
         </label>
-        <label>
-          Recurrence
-          <select id="edit-schedule" name="edit-schedule">
+        <label class="input-only">
+          <select id="edit-schedule" name="edit-schedule" aria-label="Schedule">
             <option value="one-time">One-time</option>
             <option value="recurring">Recurring</option>
           </select>
@@ -479,9 +483,8 @@
             </select>
           </div>
         </label>
-        <label>
-          Colour
-          <input id="edit-color" name="edit-color" type="color" value="#4cc9f0" />
+        <label class="input-only">
+          <input id="edit-color" name="edit-color" type="color" value="#4cc9f0" aria-label="Colour" />
         </label>
         <label>
           Urgency
@@ -1095,10 +1098,19 @@
 
       function toggleIntervalVisibility() {
         intervalLabel.style.display = scheduleSelect.value === "recurring" ? "grid" : "none";
+        resizeScheduleSelect(scheduleSelect);
       }
 
       function toggleEditIntervalVisibility() {
         editIntervalLabel.style.display = editScheduleInput.value === "recurring" ? "grid" : "none";
+        resizeScheduleSelect(editScheduleInput);
+      }
+
+      function resizeScheduleSelect(selectInput) {
+        const selectedOption = selectInput?.options?.[selectInput.selectedIndex];
+        const text = (selectedOption?.textContent || "").trim();
+        const widthCh = Math.max(8, text.length + 2);
+        selectInput.style.width = `${widthCh}ch`;
       }
 
       function isVisibleNow(item, now) {
