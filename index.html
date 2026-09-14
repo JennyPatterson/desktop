@@ -182,6 +182,33 @@
         gap: 0.7rem;
         flex-wrap: wrap;
       }
+      .context-menu {
+        position: relative;
+      }
+      .context-menu-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.85rem;
+      }
+      .context-menu-panel {
+        position: absolute;
+        top: calc(100% + 0.35rem);
+        right: 0;
+        min-width: 250px;
+        max-width: min(80vw, 360px);
+        padding: 0.6rem;
+        border: 1px solid var(--card-border);
+        border-radius: 10px;
+        background: #1a1430;
+        box-shadow: 0 12px 28px #060311a6;
+        display: grid;
+        gap: 0.45rem;
+        z-index: 20;
+      }
+      .context-menu-panel[hidden] {
+        display: none;
+      }
       .sort-control {
         display: flex;
         align-items: center;
@@ -193,10 +220,8 @@
         min-width: 140px;
       }
       .category-filter-control {
-        display: flex;
-        align-items: center;
-        gap: 0.45rem;
-        flex-wrap: wrap;
+        display: grid;
+        gap: 0.35rem;
       }
       .category-filter-label {
         color: var(--text-muted);
@@ -364,6 +389,9 @@
       #edit-schedule {
         justify-self: start;
       }
+      .form-submit-row {
+        grid-column: 1 / -1;
+      }
       @media (max-width: 700px) {
         h1 {
           margin-bottom: 0.8rem;
@@ -393,6 +421,17 @@
         .sort-control {
           width: 100%;
           justify-content: space-between;
+        }
+        .context-menu {
+          width: 100%;
+        }
+        .context-menu-button {
+          width: 100%;
+          justify-content: space-between;
+        }
+        .context-menu-panel {
+          position: static;
+          max-width: 100%;
         }
         .sort-control select {
           min-width: 0;
@@ -482,7 +521,9 @@
               <option value="Community">Community</option>
             </select>
           </label>
-          <button type="submit">Save</button>
+          <div class="form-submit-row">
+            <button type="submit">Create</button>
+          </div>
         </form>
       </section>
       <section id="experience-section">
@@ -554,6 +595,31 @@
       <div class="section-header">
         <h2>Current Tasks</h2>
         <div class="task-controls">
+          <div class="context-menu">
+            <button id="context-menu-toggle" type="button" class="secondary context-menu-button" aria-expanded="false">
+              Context
+            </button>
+            <div id="context-menu-panel" class="context-menu-panel" hidden>
+              <div class="category-filter-control" role="group" aria-label="Category filter">
+                <span class="category-filter-label">Show categories</span>
+                <label class="category-filter-option"><input type="checkbox" name="category-filter" value="Health" checked />Health</label>
+                <label class="category-filter-option"
+                  ><input type="checkbox" name="category-filter" value="Financial" checked />Financial</label
+                >
+                <label class="category-filter-option"
+                  ><input type="checkbox" name="category-filter" value="Chore" checked />Chore</label
+                >
+                <label class="category-filter-option"><input type="checkbox" name="category-filter" value="Hobby" checked />Hobby</label>
+                <label class="category-filter-option"><input type="checkbox" name="category-filter" value="Work" checked />Work</label>
+                <label class="category-filter-option"
+                  ><input type="checkbox" name="category-filter" value="Community" checked />Community</label
+                >
+                <label class="category-filter-option"
+                  ><input type="checkbox" name="category-filter" value="__uncategorized__" checked />None</label
+                >
+              </div>
+            </div>
+          </div>
           <label class="sort-control">
             Sort by
             <select id="sort-mode" name="sort-mode">
@@ -563,22 +629,6 @@
               <option value="category">Category</option>
             </select>
           </label>
-          <div class="category-filter-control" role="group" aria-label="Category filter">
-            <span class="category-filter-label">Show categories</span>
-            <label class="category-filter-option"><input type="checkbox" name="category-filter" value="Health" checked />Health</label>
-            <label class="category-filter-option"
-              ><input type="checkbox" name="category-filter" value="Financial" checked />Financial</label
-            >
-            <label class="category-filter-option"><input type="checkbox" name="category-filter" value="Chore" checked />Chore</label>
-            <label class="category-filter-option"><input type="checkbox" name="category-filter" value="Hobby" checked />Hobby</label>
-            <label class="category-filter-option"><input type="checkbox" name="category-filter" value="Work" checked />Work</label>
-            <label class="category-filter-option"
-              ><input type="checkbox" name="category-filter" value="Community" checked />Community</label
-            >
-            <label class="category-filter-option"
-              ><input type="checkbox" name="category-filter" value="__uncategorized__" checked />None</label
-            >
-          </div>
         </div>
       </div>
       <ul id="tasks-list"></ul>
@@ -654,6 +704,8 @@
       const editUrgencyInput = document.getElementById("edit-urgency");
       const editCategoryInput = document.getElementById("edit-category");
       const cancelEditButton = document.getElementById("cancel-edit");
+      const contextMenuToggle = document.getElementById("context-menu-toggle");
+      const contextMenuPanel = document.getElementById("context-menu-panel");
       const sortModeInput = document.getElementById("sort-mode");
       const categoryFilterInputs = Array.from(document.querySelectorAll('input[name="category-filter"]'));
       const tasksList = document.getElementById("tasks-list");
@@ -1191,8 +1243,18 @@
       function resizeScheduleSelect(selectInput) {
         const selectedOption = selectInput?.options?.[selectInput.selectedIndex];
         const text = (selectedOption?.textContent || "").trim();
-        const widthCh = Math.max(8, text.length + 2);
+        const widthCh = Math.ceil(Math.max(8, text.length + 2) * 1.3);
         selectInput.style.width = `${widthCh}ch`;
+      }
+
+      function setContextMenuOpen(isOpen) {
+        if (!contextMenuToggle || !contextMenuPanel) return;
+        contextMenuPanel.hidden = !isOpen;
+        contextMenuToggle.setAttribute("aria-expanded", String(isOpen));
+      }
+
+      function isContextMenuOpen() {
+        return Boolean(contextMenuPanel && !contextMenuPanel.hidden);
       }
 
       function isVisibleNow(item, now) {
@@ -1723,6 +1785,23 @@
 
       colorInput.addEventListener("input", () => {
         addColorCustomized = true;
+      });
+      contextMenuToggle?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        setContextMenuOpen(!isContextMenuOpen());
+      });
+      contextMenuPanel?.addEventListener("click", (event) => {
+        event.stopPropagation();
+      });
+      document.addEventListener("click", () => {
+        if (isContextMenuOpen()) {
+          setContextMenuOpen(false);
+        }
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && isContextMenuOpen()) {
+          setContextMenuOpen(false);
+        }
       });
       scheduleSelect.addEventListener("change", toggleIntervalVisibility);
       editScheduleInput.addEventListener("change", toggleEditIntervalVisibility);
