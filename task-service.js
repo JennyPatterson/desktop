@@ -1,13 +1,22 @@
 import { TaskModel } from "./task-model.js";
 
 export class TaskService {
+  getDefaultColorForCategory(appState, category) {
+    const normalizedCategory = TaskModel.normalizeCategory(category, null);
+    const recentItem = [...appState.items]
+      .filter((item) => TaskModel.normalizeCategory(item.category, null) === normalizedCategory)
+      .sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0))[0];
+    return recentItem ? TaskModel.normalizeColor(recentItem.color, TaskModel.getDefaultColor()) : TaskModel.getDefaultColor();
+  }
+
   createItem(appState, fields) {
     const now = fields.now || Date.now();
+    const color = fields.color || this.getDefaultColorForCategory(appState, fields.category);
     const newItem = TaskModel.normalizeItem({
       id: crypto.randomUUID(),
       name: fields.name,
       type: "task",
-      color: fields.color,
+      color,
       urgency: fields.urgency,
       category: fields.category,
       schedule: fields.schedule,

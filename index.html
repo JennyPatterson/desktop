@@ -410,7 +410,6 @@
         grid-column: 1 / -1;
       }
       #add-task-section .task-schedule-field,
-      #add-task-section .task-color-field,
       #add-task-section .task-urgency-field,
       #add-task-section .task-category-field {
         width: 100%;
@@ -420,14 +419,6 @@
       #add-task-section .task-urgency-field select,
       #add-task-section .task-category-field select {
         width: 100%;
-      }
-      #add-task-section .task-color-field {
-        justify-self: start;
-        width: fit-content;
-      }
-      #add-task-section .task-color-field input {
-        width: 2.5rem;
-        height: 2.5rem;
       }
       #add-task-section .task-interval-field .row {
         flex-wrap: wrap;
@@ -664,12 +655,9 @@
                 </select>
               </div>
             </label>
-              <label class="input-only task-color-field">
-              <input id="color" name="color" type="color" value="#4cc9f0" aria-label="Colour" />
-            </label>
               <label class="task-urgency-field">
-              Urgency
-              <select id="urgency" name="urgency">
+                Urgency
+                <select id="urgency" name="urgency">
                 <option value="S">S (Highest)</option>
                 <option value="A">A</option>
                 <option value="B">B</option>

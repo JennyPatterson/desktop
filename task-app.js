@@ -14,7 +14,6 @@ export class TaskboardApp {
     this.dom = this.getDom();
 
     this.editingItemId = null;
-    this.addColorCustomized = false;
     this.syncId = null;
     this.remoteRevision = 0;
     this.remoteEtag = null;
@@ -29,7 +28,6 @@ export class TaskboardApp {
   getDom() {
     return {
       form: document.getElementById("item-form"),
-      colorInput: document.getElementById("color"),
       scheduleSelect: document.getElementById("schedule"),
       intervalLabel: document.getElementById("interval-label"),
       intervalValueInput: document.getElementById("interval-value"),
@@ -83,7 +81,6 @@ export class TaskboardApp {
 
   initializeUiState() {
     const {
-      colorInput,
       sortModeInput,
       urgencyInput,
       editUrgencyInput,
@@ -91,7 +88,6 @@ export class TaskboardApp {
       editCategoryInput,
       githubTokenInput,
     } = this.dom;
-    colorInput.value = TaskModel.getDefaultColor();
     sortModeInput.value = this.appState.sortMode;
     this.setSelectedCategoryFilters(this.appState.categoryFilters);
     urgencyInput.value = "C";
@@ -108,7 +104,6 @@ export class TaskboardApp {
   bindEvents() {
     const {
       form,
-      colorInput,
       scheduleSelect,
       editScheduleInput,
       cancelEditButton,
@@ -125,10 +120,6 @@ export class TaskboardApp {
 
     form.addEventListener("submit", (event) => this.onCreateSubmit(event));
     editForm.addEventListener("submit", (event) => this.onEditSubmit(event));
-
-    colorInput.addEventListener("input", () => {
-      this.addColorCustomized = true;
-    });
     contextMenuToggle?.addEventListener("click", (event) => {
       event.stopPropagation();
       this.setContextMenuOpen(!this.isContextMenuOpen());
@@ -504,7 +495,6 @@ export class TaskboardApp {
     const intervalValue = Math.max(1, Number(this.dom.intervalValueInput.value) || 1);
     const intervalUnit = CONFIG.UNIT_TO_MINUTES[this.dom.intervalUnitInput.value] ? this.dom.intervalUnitInput.value : "minutes";
     const intervalMinutes = intervalValue * CONFIG.UNIT_TO_MINUTES[intervalUnit];
-    const color = TaskModel.normalizeColor(this.dom.colorInput.value, TaskModel.getDefaultColor());
     const urgency = TaskModel.normalizeUrgency(this.dom.urgencyInput.value, "C");
     const category = TaskModel.normalizeCategory(this.dom.categoryInput.value, null);
 
@@ -515,7 +505,6 @@ export class TaskboardApp {
         intervalValue,
         intervalUnit,
         intervalMinutes,
-        color,
         urgency,
         category,
         now: Date.now(),
@@ -524,10 +513,8 @@ export class TaskboardApp {
     this.dom.form.reset();
     this.dom.scheduleSelect.value = "one-time";
     this.dom.intervalUnitInput.value = "days";
-    this.dom.colorInput.value = TaskModel.getDefaultColor();
     this.dom.urgencyInput.value = "C";
     this.dom.categoryInput.value = "";
-    this.addColorCustomized = false;
     this.toggleIntervalVisibility();
     this.render();
   }
