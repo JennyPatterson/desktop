@@ -194,6 +194,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 0.8rem;
+        cursor: pointer;
       }
       .collapse-toggle {
         flex: 0 0 auto;
@@ -205,7 +206,7 @@
         align-items: center;
         justify-content: center;
         background: transparent;
-        border-color: #6f80b7;
+        border: none;
         box-shadow: none;
       }
       .collapse-toggle.secondary {
@@ -224,6 +225,9 @@
         justify-content: flex-end;
         gap: 0.7rem;
         flex-wrap: wrap;
+      }
+      #current-tasks-content .task-controls {
+        margin-bottom: 0.5rem;
       }
       .context-menu {
         position: relative;
@@ -559,23 +563,42 @@
           text-align: left;
         }
         .section-header {
-          flex-direction: column;
-          align-items: flex-start;
+          flex-direction: row;
+          align-items: center;
         }
         .task-controls {
           width: 100%;
           justify-content: flex-start;
         }
+        #current-tasks-content .task-controls {
+          width: 100%;
+          flex-wrap: nowrap;
+          align-items: center;
+          justify-content: space-between;
+        }
         .sort-control {
           width: 100%;
           justify-content: space-between;
         }
+        #current-tasks-content .sort-control {
+          width: auto;
+          justify-content: flex-start;
+          flex: 0 1 auto;
+        }
         .context-menu {
           width: 100%;
+        }
+        #current-tasks-content .context-menu {
+          width: auto;
+          flex: 0 0 auto;
         }
         .context-menu-button {
           width: 100%;
           justify-content: space-between;
+        }
+        #current-tasks-content .context-menu-button {
+          width: auto;
+          justify-content: center;
         }
         .context-menu-panel {
           position: static;
@@ -752,6 +775,17 @@
     <section id="current-tasks-section">
       <div class="section-header">
         <h2>Current Tasks</h2>
+        <button
+          type="button"
+          class="secondary collapse-toggle"
+          data-target="current-tasks-content"
+          aria-controls="current-tasks-content"
+          aria-expanded="true"
+        >
+          ^
+        </button>
+      </div>
+      <div id="current-tasks-content" class="collapsible-content">
         <div class="task-controls">
           <div class="context-menu">
             <button id="context-menu-toggle" type="button" class="secondary context-menu-button" aria-expanded="false">
@@ -787,18 +821,7 @@
               <option value="category">Category</option>
             </select>
           </label>
-          <button
-            type="button"
-            class="secondary collapse-toggle"
-            data-target="current-tasks-content"
-            aria-controls="current-tasks-content"
-            aria-expanded="true"
-          >
-            ^
-          </button>
         </div>
-      </div>
-      <div id="current-tasks-content" class="collapsible-content">
         <ul id="tasks-list"></ul>
         <div id="tasks-pagination" class="pagination" hidden></div>
       </div>

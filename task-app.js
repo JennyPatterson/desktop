@@ -238,7 +238,17 @@ export class TaskboardApp {
     for (const button of this.dom.collapseToggleButtons) {
       const expanded = button.getAttribute("aria-expanded") !== "false";
       this.setSectionCollapsed(button, !expanded);
-      button.addEventListener("click", () => {
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const isExpanded = button.getAttribute("aria-expanded") === "true";
+        this.setSectionCollapsed(button, isExpanded);
+      });
+      const header = button.closest(".section-header");
+      if (!header) continue;
+      header.addEventListener("click", (event) => {
+        if (event.target instanceof Element && event.target.closest("button, a, input, select, textarea, label")) {
+          return;
+        }
         const isExpanded = button.getAttribute("aria-expanded") === "true";
         this.setSectionCollapsed(button, isExpanded);
       });
