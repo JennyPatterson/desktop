@@ -17,6 +17,8 @@ FIELDS = (
     ("GITHUB_USERNAME", "GitHub Username", False),
     ("CONTACT_NAME", "Contact Name", False),
     ("CONTACT_LINKEDIN", "LinkedIn Profile", False),
+    ("CALENDAR_FEED_URL", "Calendar Feed URL", False),
+    ("CALENDAR_FEED_TOKEN", "Calendar Feed Token", True),
 )
 
 PALETTE = [
