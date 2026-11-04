@@ -11,16 +11,9 @@ TILES_PER_ROW = 4
 
 APP_ORDER = (
     "badge",
+    "calendar",
     "contacts",
-    "mona_paint",
-    "flappy_mona",
-    "snake",
-    "mona_pet",
-    "rogue",
-    "life",
-    "merge_conflict",
     "brattal",
-    "pong",
     "iss",
     "mass_storage",
     "settings",

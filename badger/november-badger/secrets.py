@@ -5,3 +5,5 @@ TIMEZONE = 0  # Offset from GMT as number of hours, i.e. 0, 1, -7 etc.
 GITHUB_USERNAME = "JennyPatterson"
 GITHUB_TOKEN = ""
 CONTACT_LINKEDIN = "jennifer.patterson-48633965"
+CALENDAR_FEED_URL = ""
+CALENDAR_FEED_TOKEN = ""
